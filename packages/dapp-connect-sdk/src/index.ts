@@ -26,7 +26,7 @@ export function getUserPlatform() {
 
 // detect wallet providers
 function detectWalletProviders(wallets: Wallet[]) {
-  window.addEventListener("eip6963:announceProvider", (event) => {
+  window.addEventListener("eip6963:announceProvider", (event: any) => {
     console.log("eip6963:announceProvider", event);
     const wallet = event.detail.info;
     // Remove duplicate items
