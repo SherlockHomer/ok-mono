@@ -1,13 +1,14 @@
 import React from 'react';
 import VConsole from 'vconsole';
 import ReactDOM from 'react-dom/client';
-import { connect } from '@repo/dapp-connect-sdk';
+import { connect, openConnectModal } from '@repo/dapp-connect-sdk';
 import App from './App';
 
 import './index.css';
 
 connect();
 connect();
+openConnectModal();
 
 setTimeout(() => {
   // eslint-disable-next-line no-new
