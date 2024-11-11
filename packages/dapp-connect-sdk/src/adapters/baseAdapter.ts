@@ -1,0 +1,37 @@
+// basic adapter class for request, on, removeListener and RPC error handling
+import { Logger, LogLevel, logger } from "../logger";
+
+abstract class BaseAdapter {
+  protected logger: ReturnType<typeof logger.createScopedLogger>;
+
+  constructor() {
+    // Initialize scoped logger
+    this.logger = this.initializeLogger();
+    this.logger.debug("Adapter initialized");
+  }
+
+  public abstract request(method: string, params: any[]): Promise<any>;
+
+  public abstract on(event: string, callback: (...args: any[]) => void): void;
+
+  public abstract removeListener(
+    event: string,
+    callback: (...args: any[]) => void
+  ): void;
+
+  // protected
+
+  protected getLogger() {
+    return this.logger;
+  }
+
+  // private methods
+
+  private initializeLogger(): ReturnType<typeof logger.createScopedLogger> {
+    const logger = Logger.getInstance();
+    Logger.setLevel(LogLevel.DEBUG); // TODO: For development only
+    return logger.createScopedLogger(this.constructor.name);
+  }
+}
+
+export default BaseAdapter;
