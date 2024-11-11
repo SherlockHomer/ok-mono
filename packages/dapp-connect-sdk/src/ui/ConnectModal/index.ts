@@ -1,83 +1,54 @@
 import van from "vanjs-core";
 import { Modal } from "vanjs-ui";
+import { getSupportWalletList } from "../../index";
 
-const { b, button, code, div, form, h1, input, p } = van.tags;
+const { button, div, p, h3 } = van.tags;
 
-const example1 = () => {
+export function openConnectModal() {
+  const wallets = getSupportWalletList();
   const closed = van.state(false);
-  van.add(
-    document.body,
-    Modal(
-      { closed },
-      p("Hello, World!"),
-      div(
-        { style: "display: flex; justify-content: center;" },
-        button({ onclick: () => (closed.val = true) }, "Ok")
+  const formDom = div(
+    h3(" Connect Wallet"),
+    div(
+      {
+        style:
+          "display: flex; flex-direction: column; padding: 15px 0;min-width: 280px",
+      },
+      wallets.map((wallet) =>
+        div(
+          {
+            style:
+              "display: flex; justify-content: space-between; align-items:center; padding-bottom:10px;",
+          },
+          p(wallet.name),
+          button(
+            {
+              onclick: () => {
+                console.log(wallet.id);
+                closed.val = true;
+              },
+              style: "padding:3px",
+            },
+            "Connect"
+          )
+        )
       )
     )
   );
-};
-
-const example2 = () => {
-  const closed = van.state(false);
-  const formDom = form(
-    div(
-      input({ type: "radio", name: "lang", value: "Zig", checked: true }),
-      "Zig"
-    ),
-    div(input({ type: "radio", name: "lang", value: "Rust" }), "Rust"),
-    div(input({ type: "radio", name: "lang", value: "Kotlin" }), "Kotlin"),
-    div(
-      input({ type: "radio", name: "lang", value: "TypeScript" }),
-      "TypeScript"
-    ),
-    div(
-      input({ type: "radio", name: "lang", value: "JavaScript" }),
-      "JavaScript"
-    )
-  );
-
-  const onOk = () => {
-    const lang = (<HTMLInputElement>formDom.querySelector("input:checked"))
-      .value;
-    alert(lang + " is a good language 😀");
-    closed.val = true;
-  };
 
   van.add(
     document.body,
     Modal(
       { closed, blurBackground: true },
-      p("What's your favorite programming language?"),
       formDom,
       p(
         { style: "display: flex; justify-content: space-evenly;" },
-        button({ onclick: onOk }, "Ok"),
-        button({ onclick: () => (closed.val = true) }, "Cancel")
+        button(
+          { onclick: () => (closed.val = true), style: "padding:3px 25px;" },
+          "Cancel"
+        )
       )
     )
   );
-};
-
-const ModalDemo = () => {
-  return div(
-    h1("Modal Demo"),
-    p(
-      "This is a demo for the ",
-      code("Modal"),
-      " component in ",
-      b("VanUI"),
-      "."
-    ),
-    p(
-      button({ onclick: example1 }, "Example 1"),
-      " ",
-      button({ onclick: example2 }, "Example 2")
-    )
-  );
-};
-
-export function openConnectModal() {
-  van.add(document.body, ModalDemo());
   console.log("do call");
 }

@@ -8,7 +8,6 @@ import './index.css';
 
 connect();
 connect();
-openConnectModal();
 
 setTimeout(() => {
   // eslint-disable-next-line no-new
