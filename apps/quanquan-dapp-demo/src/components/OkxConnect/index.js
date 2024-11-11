@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Button } from "antd-mobile";
-import { OKXConnectSdk } from "@repo/dapp-connect-sdk";
+import OKXConnectSdk from "@repo/dapp-connect-sdk";
 
 export default function OKXConnect({}) {
   const [hasInit, setHasInit] = useState(false);
