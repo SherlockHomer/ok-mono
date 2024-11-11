@@ -3,9 +3,10 @@ export function connect() {
 }
 
 type Wallet = {
-  id: string;
+  uuid: string;
   name: string;
-  // iconUrl: string;
+  icon?: string;
+  rdns?: string;
 };
 
 enum UserPlatform {
@@ -23,30 +24,36 @@ export function getUserPlatform() {
   return UserPlatform.PCBrowser;
 }
 
+// detect wallet providers
+function detectWalletProviders(wallets: Wallet[]) {
+  window.addEventListener("eip6963:announceProvider", (event) => {
+    console.log("eip6963:announceProvider", event);
+    const wallet = event.detail.info;
+    // Remove duplicate items
+    if (!wallets.some((p) => p.uuid === wallet.uuid)) {
+      // console.table(wallet);
+      wallets.push(wallet);
+    }
+  });
+  // get installed wallet
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+}
+
+export const OKX_MINI_WALLET = {
+  uuid: "0asdf-asdf-7982-8fef-341bf2a6eb2e",
+  name: "OKX Mini Wallet",
+};
+
 export function getSupportWalletList(): Wallet[] {
   const platform = getUserPlatform();
   if (platform === UserPlatform.Telegram) {
-    return [
-      {
-        id: "2",
-        name: "OKX Mini Wallet",
-      },
-    ];
+    return [OKX_MINI_WALLET];
   }
-  return [
-    {
-      id: "1",
-      name: "OKX Wallet",
-    },
-    {
-      id: "2",
-      name: "OKX Mini Wallet",
-    },
-    {
-      id: "3",
-      name: "MetaMusk Wallet",
-    },
-  ];
+  const installedWallets: Wallet[] = [];
+  // detect wallet providers;
+  detectWalletProviders(installedWallets);
+
+  return [OKX_MINI_WALLET, ...installedWallets];
 }
 
 export function connectCallBack(wallet: Wallet) {
@@ -54,4 +61,4 @@ export function connectCallBack(wallet: Wallet) {
   alert(`user connect ${wallet.name}`);
 }
 
-export * from "./ui/ConnectModal/index.js";
+export * from "./ui/ConnectModal/index";

@@ -12,7 +12,7 @@ export function openConnectModal() {
     div(
       {
         style:
-          "display: flex; flex-direction: column; padding: 15px 0;min-width: 280px",
+          "display: flex; flex-direction: column; padding-top: 15px;min-width: 280px",
       },
       wallets.map((wallet) =>
         div(
@@ -50,5 +50,4 @@ export function openConnectModal() {
       )
     )
   );
-  console.log("do call");
 }
