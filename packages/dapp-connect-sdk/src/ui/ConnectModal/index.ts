@@ -1,6 +1,6 @@
 import van from "vanjs-core";
 import { Modal } from "vanjs-ui";
-import { getSupportWalletList } from "../../index";
+import { getSupportWalletList, connectCallBack } from "../../index";
 
 const { button, div, p, h3 } = van.tags;
 
@@ -24,8 +24,8 @@ export function openConnectModal() {
           button(
             {
               onclick: () => {
-                console.log(wallet.id);
                 closed.val = true;
+                connectCallBack(wallet);
               },
               style: "padding:3px",
             },
