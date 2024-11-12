@@ -6,10 +6,10 @@ import EthereumAdapter from "./adapters/ethereumAdapter";
 import { SupportedWallets } from "./types";
 import { isTelegram } from "./utils/platform";
 
-// declare let window: Window & {
-//   [index: string]: any;
-//   ethereum?: any;
-// };
+declare let window: Window & {
+  [index: string]: any;
+  ethereum?: any;
+};
 
 type SupportedWalletTypes = keyof typeof SupportedWallets;
 export interface OKXConnectSdkOptions {
@@ -21,6 +21,7 @@ export interface OKXConnectSdkOptions {
 // OKX connect SDK
 class OKXConnectSdk extends EventEmitter3 {
   private static options: OKXConnectSdkOptions = {};
+  private static initialized = false;
   private okxUniversalProvider: OKXUniversalProvider | null = null;
   private proxies: {
     ethereum: any;
@@ -28,8 +29,7 @@ class OKXConnectSdk extends EventEmitter3 {
     ethereum: null,
   };
 
-  private logger: ReturnType<typeof logger.createScopedLogger>;
-  private initialized = false;
+  protected logger: ReturnType<typeof logger.createScopedLogger>;
 
   // init
   constructor() {
@@ -38,18 +38,25 @@ class OKXConnectSdk extends EventEmitter3 {
     this.logger = this.initializeLogger();
   }
 
+  protected getLogger() {
+    return this.logger;
+  }
+
   static async init(options: OKXConnectSdkOptions = {}) {
-    console.log("initialize sdk");
+    if (OKXConnectSdk.initialized) {
+      return;
+    }
+
     this.options = options;
     const sdk = new OKXConnectSdk();
     await sdk.initialize();
     return sdk;
   }
 
-  // connect / popup
+  // connect
   public async connect(wallet: SupportedWalletTypes) {
     this.logger.info(`Connecting to wallet: ${wallet}`);
-    if (!this.initialized) {
+    if (!OKXConnectSdk.initialized) {
       this.logger.error(`OKX Connect SDK not initialized`);
       return;
     }
@@ -63,36 +70,38 @@ class OKXConnectSdk extends EventEmitter3 {
     if (!this.okxUniversalProvider) {
       await this.initUniversalProvider();
       await this.initProxies();
-      // TODO: Call connectOkxWallet() if opened in TG app
-      if (isTelegram(navigator.userAgent)) {
+
+      // proxy ethereum provider
+      // TODO: not working at the moment because of wallet extension already hijacked
+      // await this.proxyAllEthereumProvider();
+
+      // Call connectOkxWallet() if opened in TG app
+      if (isTelegram()) {
         await this.connectOkxWallet();
+
+        // inject window.ethereum if not exist
+        if (!window.ethereum) {
+          const proxy = new Proxy(this.proxies.ethereum, {
+            get(target, prop) {
+              console.log(`proxy get: `, target, prop);
+              // TODO: protect some methods
+              return Reflect.get(target, prop);
+            },
+            set(object, property, value) {
+              console.log(`proxy set: `, object, property, value);
+              // TODO: protect some methods
+              return Reflect.set(object, property, value);
+            },
+          });
+          // inject etheruem provider if window.ethereum not exist
+          Object.defineProperty(window, "ethereum", {
+            value: proxy,
+            writable: false,
+            configurable: false,
+          });
+        }
       }
     }
-
-    //proxy ethereum provider
-    await this.proxyAllEthereumProvider();
-
-    // inject window.ethereum if not exist
-    if (!window.ethereum) {
-      const proxy = new Proxy(this.proxies.ethereum, {
-        get(target, prop) {
-          console.log(`proxy get: `, target, prop);
-          return Reflect.get(target, prop);
-        },
-        set(object, property, value) {
-          console.log(`proxy set: `, object, property, value);
-          return Reflect.set(object, property, value);
-        },
-      });
-      // inject etheruem provider if window.ethereum not exist
-      Object.defineProperty(window, "ethereum", {
-        value: proxy,
-        writable: false,
-        configurable: false,
-      });
-    }
-
-    // TODO: navigate to TG mini wallet with tgAppStartParams
   }
 
   // Private methods
@@ -100,7 +109,7 @@ class OKXConnectSdk extends EventEmitter3 {
   private async initialize() {
     this.logger.info(`Initializing OKX Connect SDK`);
     try {
-      this.initialized = true;
+      OKXConnectSdk.initialized = true;
       this.logger.info(`OKX Connect SDK initialized`);
     } catch (err) {
       this.logger.error(`Failed to initialize OKX Connect SDK: ${err}`);
