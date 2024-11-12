@@ -140,6 +140,7 @@ class OKXConnectSdk extends EventEmitter3 {
       return;
     }
 
+    this.logger.info(`Check hasTelegramSDK: `, hasTelegramSDK());
     if (!hasTelegramSDK()) {
       this.logger.error(`Telegram SDK not found`);
       return;
