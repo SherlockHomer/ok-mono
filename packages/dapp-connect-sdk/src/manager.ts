@@ -4,7 +4,7 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { Logger, LogLevel, logger } from "./logger";
 import EthereumAdapter from "./adapters/ethereumAdapter";
 import { SupportedWallets } from "./types";
-import { isTelegram } from "./utils/platform";
+import { hasTelegramSDK, isTelegram } from "./utils/platform";
 
 declare let window: Window & {
   [index: string]: any;
@@ -137,6 +137,11 @@ class OKXConnectSdk extends EventEmitter3 {
   private async connectOkxWallet() {
     if (!this.okxUniversalProvider) {
       this.logger.error(`OKX Universal Provider not initialized`);
+      return;
+    }
+
+    if (!hasTelegramSDK()) {
+      this.logger.error(`Telegram SDK not found`);
       return;
     }
     this.logger.info(`Connecting to OKX Wallet`);
