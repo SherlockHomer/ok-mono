@@ -4,6 +4,7 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { Logger, LogLevel, logger } from "./logger";
 import EthereumAdapter from "./adapters/ethereumAdapter";
 import { SupportedWallets } from "./types";
+import { isTelegram } from "./utils/platform";
 
 // declare let window: Window & {
 //   [index: string]: any;
@@ -63,7 +64,9 @@ class OKXConnectSdk extends EventEmitter3 {
       await this.initUniversalProvider();
       await this.initProxies();
       // TODO: Call connectOkxWallet() if opened in TG app
-      // await this.connectOkxWallet();
+      if (isTelegram(navigator.userAgent)) {
+        await this.connectOkxWallet();
+      }
     }
 
     //proxy ethereum provider
@@ -81,9 +84,7 @@ class OKXConnectSdk extends EventEmitter3 {
           return Reflect.set(object, property, value);
         },
       });
-      this.logger.debug(`proxy: `, proxy, window.ethereum);
       // inject etheruem provider if window.ethereum not exist
-      this.logger.debug(`proxy define: `, proxy);
       Object.defineProperty(window, "ethereum", {
         value: proxy,
         writable: false,

@@ -12,3 +12,9 @@ export enum SupportedChains {
 }
 
 // supported chains map
+
+export enum UserPlatform {
+  TELEGRAM = 0,
+  MOBILE_BROWSER = 1,
+  PC_BROWSER = 2,
+}

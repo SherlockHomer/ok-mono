@@ -1,5 +1,6 @@
 import OKXConnectSdk from "./manager";
-import { SupportedWallets } from "./types";
+import { SupportedWallets, UserPlatform } from "./types";
+import { getUserPlatform } from "./utils/platform";
 
 type Wallet = {
   uuid: string;
@@ -7,21 +8,6 @@ type Wallet = {
   icon?: string;
   rdns?: string;
 };
-
-enum UserPlatform {
-  Telegram = 0,
-  MobileBrowser = 1,
-  PCBrowser = 2,
-}
-
-export function getUserPlatform() {
-  const userAgent = navigator.userAgent;
-  const isTelegram = /Telegram/i.test(userAgent);
-  if (isTelegram) return UserPlatform.Telegram;
-  const isMobile = /Android|iPhone|Mobile/i.test(userAgent);
-  if (isMobile) return UserPlatform.MobileBrowser;
-  return UserPlatform.PCBrowser;
-}
 
 // detect wallet providers
 function detectWalletProviders(wallets: Wallet[]) {
@@ -44,8 +30,8 @@ export const OKX_MINI_WALLET = {
 };
 
 export function getSupportWalletList(): Wallet[] {
-  const platform = getUserPlatform();
-  if (platform === UserPlatform.PCBrowser) {
+  const platform = getUserPlatform(navigator.userAgent);
+  if (platform === UserPlatform.PC_BROWSER) {
     const installedWallets: Wallet[] = [];
     // detect wallet providers;
     detectWalletProviders(installedWallets);
