@@ -76,31 +76,31 @@ class OKXConnectSdk extends EventEmitter3 {
       // await this.proxyAllEthereumProvider();
 
       // Call connectOkxWallet() if opened in TG app
-      if (isTelegram()) {
-        await this.connectOkxWallet();
+      // if (isTelegram()) {
+      await this.connectOkxWallet();
 
-        // inject window.ethereum if not exist
-        if (!window.ethereum) {
-          const proxy = new Proxy(this.proxies.ethereum, {
-            get(target, prop) {
-              console.log(`proxy get: `, target, prop);
-              // TODO: protect some methods
-              return Reflect.get(target, prop);
-            },
-            set(object, property, value) {
-              console.log(`proxy set: `, object, property, value);
-              // TODO: protect some methods
-              return Reflect.set(object, property, value);
-            },
-          });
-          // inject etheruem provider if window.ethereum not exist
-          Object.defineProperty(window, "ethereum", {
-            value: proxy,
-            writable: false,
-            configurable: false,
-          });
-        }
+      // inject window.ethereum if not exist
+      if (!window.ethereum) {
+        const proxy = new Proxy(this.proxies.ethereum, {
+          get(target, prop) {
+            console.log(`proxy get: `, target, prop);
+            // TODO: protect some methods
+            return Reflect.get(target, prop);
+          },
+          set(object, property, value) {
+            console.log(`proxy set: `, object, property, value);
+            // TODO: protect some methods
+            return Reflect.set(object, property, value);
+          },
+        });
+        // inject etheruem provider if window.ethereum not exist
+        Object.defineProperty(window, "ethereum", {
+          value: proxy,
+          writable: false,
+          configurable: false,
+        });
       }
+      // }
     }
   }
 
@@ -122,8 +122,8 @@ class OKXConnectSdk extends EventEmitter3 {
     // initialize @okxconnect/universal-provider
     this.okxUniversalProvider = await OKXUniversalProvider.init({
       dappMetaData: {
-        name: OKXConnectSdk.options.appName || "My DApp",
-        icon: OKXConnectSdk.options.appIconUrl || "",
+        name: "OKX WalletConnect UI Demo",
+        icon: "https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png",
       },
     });
 
@@ -147,6 +147,35 @@ class OKXConnectSdk extends EventEmitter3 {
     }
     this.logger.info(`Connecting to OKX Wallet`);
     // connect wallet to to EVM
+    this.logger.info(
+      `Connecting to OKX Wallet - okxUniversalProvider: `,
+      this.okxUniversalProvider.connect
+    );
+    this.okxUniversalProvider.on("display_uri", (uri) => {
+      console.log("URI: ", uri, decodeURIComponent(uri));
+      // decode URI and get params in deeplink
+      const url = decodeURIComponent(uri);
+      console.log("URL: ", url);
+      const sessionInfo = url.split(
+        "?deeplink=okx://web3/wallet/connect?param="
+      )[1];
+
+      // redirect to TG app url
+      console.log("sessionInfo : ", sessionInfo);
+
+      const searchParams = `domain=OKX_WALLET_BOT&appname=start&startapp=${sessionInfo}`;
+      // new window
+      // https://core.telegram.org/api/bots/webapps#direct-link-mini-apps
+      const tgStartAppUrl = `tg://resolve?${searchParams}`;
+      console.log("tgStartAppUrl: ", tgStartAppUrl);
+
+      // open new window
+      // if (isTelegram()) {
+      //   window.location.href = tgStartAppUrl;
+      // } else {
+      window.open(tgStartAppUrl, "_blank");
+      // }
+    });
     const session = await this.okxUniversalProvider.connect({
       namespaces: {
         eip155: {
