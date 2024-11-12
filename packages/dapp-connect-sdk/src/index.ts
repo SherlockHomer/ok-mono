@@ -45,14 +45,13 @@ export const OKX_MINI_WALLET = {
 
 export function getSupportWalletList(): Wallet[] {
   const platform = getUserPlatform();
-  if (platform === UserPlatform.Telegram) {
-    return [OKX_MINI_WALLET];
+  if (platform === UserPlatform.PCBrowser) {
+    const installedWallets: Wallet[] = [];
+    // detect wallet providers;
+    detectWalletProviders(installedWallets);
+    return [OKX_MINI_WALLET, ...installedWallets];
   }
-  const installedWallets: Wallet[] = [];
-  // detect wallet providers;
-  detectWalletProviders(installedWallets);
-
-  return [OKX_MINI_WALLET, ...installedWallets];
+  return [OKX_MINI_WALLET];
 }
 
 export async function connectCallBack(wallet: Wallet) {
