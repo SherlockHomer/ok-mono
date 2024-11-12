@@ -29,7 +29,7 @@ export function openConnectModal() {
                 closed.val = true;
                 connectCallBack(wallet);
               },
-              style: "padding:5px",
+              style: "padding:5px;font-size:15px;",
             },
             "Connect"
           )
