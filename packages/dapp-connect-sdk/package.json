@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@okxconnect/universal-provider": "^1.4.4",
-    "eventemitter3": "^5.0.1"
+    "eventemitter3": "^5.0.1",
+    "vanjs-core": "^1.5.2",
+    "vanjs-ui": "^0.10.1"
   }
 }
