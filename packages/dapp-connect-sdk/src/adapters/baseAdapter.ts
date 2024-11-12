@@ -1,12 +1,17 @@
 // basic adapter class for request, on, removeListener and RPC error handling
+import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { Logger, LogLevel, logger } from "../logger";
 
 abstract class BaseAdapter {
+  protected okxUniversalProvider: any;
   protected logger: ReturnType<typeof logger.createScopedLogger>;
 
-  constructor() {
+  constructor(okxUniversalProvider: OKXUniversalProvider) {
     // Initialize scoped logger
     this.logger = this.initializeLogger();
+
+    // setup OKXUniversalProvider
+    this.okxUniversalProvider = okxUniversalProvider;
     this.logger.debug("Adapter initialized");
   }
 

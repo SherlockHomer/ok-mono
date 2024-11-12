@@ -61,12 +61,12 @@ class OKXConnectSdk extends EventEmitter3 {
     // TODO: Assume TG mini wallet flow first
     if (!this.okxUniversalProvider) {
       await this.initUniversalProvider();
+      await this.initProxies();
+      await this.connectOkxWallet();
     }
 
     //proxy ethereum provider
-    setTimeout(async () => {
-      await this.proxyAllEthereumProvider();
-    }, 1000);
+    await this.proxyAllEthereumProvider();
 
     // TODO: navigate to TG mini wallet with tgAppStartParams
   }
@@ -76,9 +76,6 @@ class OKXConnectSdk extends EventEmitter3 {
   private async initialize() {
     this.logger.info(`Initializing OKX Connect SDK`);
     try {
-      // init proxies
-      await this.initProxies();
-
       this.initialized = true;
       this.logger.info(`OKX Connect SDK initialized`);
     } catch (err) {
@@ -96,12 +93,52 @@ class OKXConnectSdk extends EventEmitter3 {
         icon: OKXConnectSdk.options.appIconUrl || "",
       },
     });
+
+    this.logger.info(
+      `Connecting OKX Universal Provider to EVM: `,
+      this.okxUniversalProvider
+    );
     this.logger.info(`OKX Universal Provider initialized`);
   }
 
+  private async connectOkxWallet() {
+    if (!this.okxUniversalProvider) {
+      this.logger.error(`OKX Universal Provider not initialized`);
+      return;
+    }
+    // connect wallet to to EVM
+    const session = await this.okxUniversalProvider.connect({
+      namespaces: {
+        eip155: {
+          // 请按需组合需要的链id传入，多条链就传入多个
+          chains: ["eip155:1"],
+        },
+      },
+      optionalNamespaces: {
+        eip155: {
+          chains: ["eip155:43114"],
+        },
+      },
+      sessionConfig: {
+        redirect: "tg://resolve",
+      },
+    });
+    this.logger.info(`OKX Universal Provider connected: `, session);
+
+    const accounts = this.okxUniversalProvider.request(
+      { method: "eth_requestAccounts" },
+      "eip155:1"
+    );
+    this.logger.info(`OKX Universal Provider eth_requestAccounts : `, accounts);
+  }
+
   private async initProxies() {
+    if (!this.okxUniversalProvider) {
+      this.logger.error(`OKX Universal Provider not initialized`);
+      return;
+    }
     // etheum provider proxy
-    this.proxies.ethereum = new EthereumAdapter();
+    this.proxies.ethereum = new EthereumAdapter(this.okxUniversalProvider);
   }
 
   private initializeLogger(): ReturnType<typeof logger.createScopedLogger> {
@@ -127,7 +164,25 @@ class OKXConnectSdk extends EventEmitter3 {
         );
 
         // use proxies[ethereum]
-        this.proxies.ethereum.request(request.method, request.params);
+        // this.proxies.ethereum.request(request.method, request.params);
+      },
+
+      get: (target: any, prop: string) => {
+        this.logger.debug(
+          `Ethereum provider get: ${target}, ${prop}, ${target[prop]}`
+        );
+        if (prop === "request") {
+          return target[prop];
+        }
+
+        return target[prop];
+      },
+      set: (target: any, prop: string, value: any) => {
+        this.logger.debug(
+          `Ethereum provider set: ${target}, ${prop}, ${value}`
+        );
+        target[prop] = value;
+        return true;
       },
     };
 

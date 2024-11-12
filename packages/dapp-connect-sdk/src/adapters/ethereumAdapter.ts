@@ -1,8 +1,12 @@
+import { OKXUniversalProvider } from "@okxconnect/universal-provider";
+
 import BaseAdapter from "./baseAdapter";
 
 class EthereumAdapter extends BaseAdapter {
-  constructor() {
-    super();
+  constructor(okxUniversalProvider: OKXUniversalProvider) {
+    super(okxUniversalProvider);
+
+    this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
   }
 
   public async request(method: string, params: any[]) {
