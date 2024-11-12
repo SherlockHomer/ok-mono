@@ -2,11 +2,12 @@
   "name": "ok-mono",
   "private": true,
   "scripts": {
+    "setup": "pnpm submodule",
     "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' + & rm pnpm-lock.yaml",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "prepare": "git submodule sync && git submodule update"
+    "submodule": "git submodule sync && git submodule update --init --remote "
   },
   "devDependencies": {
     "prettier": "^3.2.5",
