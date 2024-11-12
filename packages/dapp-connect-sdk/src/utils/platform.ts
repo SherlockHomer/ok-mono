@@ -7,6 +7,8 @@ export const isTelegram = (): boolean =>
 export const isMobile = (userAgent: string): boolean =>
   /Android|iPhone|Mobile/i.test(userAgent);
 
+export const hasTelegramSDK = (): boolean => window?.Telegram !== undefined;
+
 export const getUserPlatform = (userAgent: string): UserPlatform => {
   if (isTelegram()) return UserPlatform.TELEGRAM;
   if (isMobile(userAgent)) return UserPlatform.MOBILE_BROWSER;
