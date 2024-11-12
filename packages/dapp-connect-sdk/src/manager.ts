@@ -62,11 +62,34 @@ class OKXConnectSdk extends EventEmitter3 {
     if (!this.okxUniversalProvider) {
       await this.initUniversalProvider();
       await this.initProxies();
-      await this.connectOkxWallet();
+      // TODO: Call connectOkxWallet() if opened in TG app
+      // await this.connectOkxWallet();
     }
 
     //proxy ethereum provider
     await this.proxyAllEthereumProvider();
+
+    // inject window.ethereum if not exist
+    if (!window.ethereum) {
+      const proxy = new Proxy(this.proxies.ethereum, {
+        get(target, prop) {
+          console.log(`proxy get: `, target, prop);
+          return Reflect.get(target, prop);
+        },
+        set(object, property, value) {
+          console.log(`proxy set: `, object, property, value);
+          return Reflect.set(object, property, value);
+        },
+      });
+      this.logger.debug(`proxy: `, proxy, window.ethereum);
+      // inject etheruem provider if window.ethereum not exist
+      this.logger.debug(`proxy define: `, proxy);
+      Object.defineProperty(window, "ethereum", {
+        value: proxy,
+        writable: false,
+        configurable: false,
+      });
+    }
 
     // TODO: navigate to TG mini wallet with tgAppStartParams
   }
@@ -106,6 +129,7 @@ class OKXConnectSdk extends EventEmitter3 {
       this.logger.error(`OKX Universal Provider not initialized`);
       return;
     }
+    this.logger.info(`Connecting to OKX Wallet`);
     // connect wallet to to EVM
     const session = await this.okxUniversalProvider.connect({
       namespaces: {
@@ -190,10 +214,10 @@ class OKXConnectSdk extends EventEmitter3 {
       `Proxying Ethereum provider - before: ${ethereumProvider.request}`
     );
 
-    Object.defineProperty(ethereumProvider, "request", {
-      value: new Proxy(ethereumProvider.request, requestHandler),
-      writable: true,
-    });
+    // Object.defineProperty(ethereumProvider, "request", {
+    //   value: new Proxy(ethereumProvider.request, requestHandler),
+    //   writable: true,
+    // });
 
     ethereumProvider.isOkxConnectProvider = true;
   }

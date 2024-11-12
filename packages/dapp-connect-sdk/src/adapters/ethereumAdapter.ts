@@ -20,13 +20,14 @@ class EthereumAdapter extends BaseAdapter {
     "wallet_addEthereumChain",
     "wallet_watchAsset",
   ];
-  public async request(method: string, params: any[]) {
+  public async request(args: { method: string; params: any[] }) {
+    const { method, params } = args;
     this.getLogger().debug("EthereumAdapter request", method, params);
     // get chain
     const chain = "eip155:1";
     const requestData = params ? { method, params } : { method };
     if (this.EVM_SUPPORTED_METHODS.includes(method)) {
-      this.getLogger().debug("Requesting accounts");
+      this.getLogger().debug("Requesting accounts: ", method, requestData);
       try {
         const result = await this.okxUniversalProvider.request(
           requestData,
@@ -36,9 +37,10 @@ class EthereumAdapter extends BaseAdapter {
       } catch (error) {
         return Promise.reject(error);
       }
+    } else {
+      this.getLogger().info(`Method ${method} not supported`);
+      return Promise.reject(`Method ${method} not supported`);
     }
-    console.log(`Method ${method} not supported`);
-    return Promise.reject(`Method ${method} not supported`);
   }
 
   public on(event: string, callback: Function) {

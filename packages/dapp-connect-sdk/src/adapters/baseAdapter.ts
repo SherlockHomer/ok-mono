@@ -15,7 +15,10 @@ abstract class BaseAdapter {
     this.logger.debug("Adapter initialized");
   }
 
-  public abstract request(method: string, params: any[]): Promise<any>;
+  public abstract request(args: {
+    method: string;
+    params: any[];
+  }): Promise<any>;
 
   public abstract on(event: string, callback: (...args: any[]) => void): void;
 
