@@ -2,6 +2,7 @@
   "name": "ok-mono",
   "private": true,
   "scripts": {
+    "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' + & rm pnpm-lock.yaml",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
