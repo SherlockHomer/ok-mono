@@ -9,16 +9,36 @@ class EthereumAdapter extends BaseAdapter {
     this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
   }
 
+  EVM_SUPPORTED_METHODS = [
+    "personal_sign",
+    "eth_signTypedData_v4",
+    "eth_sendTransaction",
+    "eth_accounts",
+    "eth_requestAccounts",
+    "eth_chainId",
+    "wallet_switchEthereumChain",
+    "wallet_addEthereumChain",
+    "wallet_watchAsset",
+  ];
   public async request(method: string, params: any[]) {
     this.getLogger().debug("EthereumAdapter request", method, params);
-
-    switch (method) {
-      case "eth_requestAccounts":
-        this.getLogger().debug("Requesting accounts");
-        return Promise.resolve([]);
-      default:
-        console.log(`Method ${method} not supported`);
+    // get chain
+    const chain = "eip155:1";
+    const requestData = params ? { method, params } : { method };
+    if (this.EVM_SUPPORTED_METHODS.includes(method)) {
+      this.getLogger().debug("Requesting accounts");
+      try {
+        const result = await this.okxUniversalProvider.request(
+          requestData,
+          chain
+        );
+        return Promise.resolve(result);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
+    console.log(`Method ${method} not supported`);
+    return Promise.reject(`Method ${method} not supported`);
   }
 
   public on(event: string, callback: Function) {
