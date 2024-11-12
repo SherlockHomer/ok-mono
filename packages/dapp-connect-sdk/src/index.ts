@@ -1,4 +1,5 @@
 import OKXConnectSdk from "./manager";
+import { SupportedWallets } from "./types";
 
 type Wallet = {
   uuid: string;
@@ -54,9 +55,12 @@ export function getSupportWalletList(): Wallet[] {
   return [OKX_MINI_WALLET, ...installedWallets];
 }
 
-export function connectCallBack(wallet: Wallet) {
+export async function connectCallBack(wallet: Wallet) {
   console.table(wallet);
-  alert(`user connect ${wallet.name}`);
+
+  // init sdk
+  const sdk = await OKXConnectSdk.init();
+  await sdk.connect(wallet.name as keyof typeof SupportedWallets);
 }
 
 export * from "./ui/ConnectModal/index";
