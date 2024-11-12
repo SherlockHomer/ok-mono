@@ -144,8 +144,11 @@ class OKXConnectSdk extends EventEmitter3 {
     const session = await this.okxUniversalProvider.connect({
       namespaces: {
         eip155: {
-          // 请按需组合需要的链id传入，多条链就传入多个
           chains: ["eip155:1"],
+          rpcMap: {
+            1: "https://rpc.flashbots.net", // set your own rpc url
+          },
+          defaultChain: "1",
         },
       },
       optionalNamespaces: {
