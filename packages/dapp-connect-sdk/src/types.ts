@@ -18,3 +18,9 @@ export enum UserPlatform {
   MOBILE_BROWSER = 1,
   PC_BROWSER = 2,
 }
+
+// EVM message event
+export interface ProviderMessage {
+  readonly type: string;
+  readonly data: unknown;
+}

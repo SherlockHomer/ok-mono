@@ -2,6 +2,8 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 import BaseAdapter from "./baseAdapter";
 
+import { ProviderMessage } from "../types";
+
 class EthereumAdapter extends BaseAdapter {
   constructor(okxUniversalProvider: OKXUniversalProvider) {
     super(okxUniversalProvider);
@@ -45,12 +47,20 @@ class EthereumAdapter extends BaseAdapter {
 
   public on(event: string, callback: Function) {
     switch (event) {
+      case "connect":
+        this.handleConnect(callback);
+        break;
+      case "disconnect":
+        this.handleDisconnect(callback);
+        break;
       case "accountsChanged":
-        this.handleAccountsChanged([]);
+        this.handleAccountsChanged(callback);
         break;
       case "chainChanged":
-        this.handleChainChanged("");
+        this.handleChainChanged(callback);
         break;
+      case "message":
+        this.handleMessage(callback);
       default:
         console.log(`Event ${event} not supported`);
     }
@@ -62,12 +72,24 @@ class EthereumAdapter extends BaseAdapter {
 
   // private methods
 
-  private handleAccountsChanged(accounts: string[]) {
+  private handleConnect(callback: Function) {
+    console.log("handleConnect");
+  }
+
+  private handleDisconnect(callback: Function) {
+    console.log("handleDisconnect");
+  }
+
+  private handleAccountsChanged(callback: Function) {
     console.log("handleAccountsChanged");
   }
 
-  private handleChainChanged(chainId: string) {
+  private handleChainChanged(callback: Function) {
     console.log("handleChainChanged");
+  }
+
+  private handleMessage(callback: (message: ProviderMessage) => void) {
+    console.log("handleMessage");
   }
 }
 
