@@ -31,7 +31,8 @@ module.exports = {
     ".*.js",
     "node_modules/",
     "dist/",
-    "tsup.config.*"
+    "tsup.config.*",
+    "esbuild.config.*",
   ],
   overrides: [
     // Force ESLint to detect .tsx files
