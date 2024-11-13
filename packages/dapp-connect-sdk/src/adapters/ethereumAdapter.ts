@@ -46,52 +46,65 @@ class EthereumAdapter extends BaseAdapter {
     }
   }
 
+  public isConnected(){
+    if(this.okxUniversalProvider.session){
+      return true;
+    }
+    return false;
+  }
+
+  public callbackHandlers:Record<string, Set<Function>> = {
+    'connect': new Set(),
+    'disconnect': new Set(),
+    'accountsChanged': new Set(),
+    'chainChanged': new Set(),
+  };
+
   public on(event: string, callback: Function) {
-    switch (event) {
-      case "connect":
-        this.handleConnect(callback);
-        break;
-      case "disconnect":
-        this.handleDisconnect(callback);
-        break;
-      case "accountsChanged":
-        this.handleAccountsChanged(callback);
-        break;
-      case "chainChanged":
-        this.handleChainChanged(callback);
-        break;
-      case "message":
-        this.handleMessage(callback);
-      default:
-        console.log(`Event ${event} not supported`);
+    if (this.callbackHandlers[event]) {
+      this.callbackHandlers[event].add(callback);
+    } else {
+      console.log(`Event ${event} not supported`);
     }
   }
 
-  public removeListener() {
+  public removeListener(event: string, callback: Function) {
     console.log("removeListener");
+    if (this.callbackHandlers[event]) {
+      this.callbackHandlers[event].delete(callback);
+    } else {
+      console.log(`Event ${event} not supported`);
+    }
   }
 
-  // private methods
 
-  private handleConnect(callback: Function) {
-    console.log("handleConnect");
+
+  public sessionUpdateCallback(session:any){
+    console.log(session);
+    const isConnect=true,isAccountChanged=false,isChainChanged=false;
+    let event ='no_methods';
+    if(isConnect){
+      event = 'connect';
+    }else if(isAccountChanged){
+      event = 'accountChanged';
+    }else if(isChainChanged){
+      event = 'chainChanged';
+    }
+    if (this.callbackHandlers[event]) {
+      this.callbackHandlers[event]?.forEach(callback => {
+        callback(session);
+      });
+    }
+  }
+  public sessionDeleteCallback(topic:any){
+    console.log(topic);
+    if (this.callbackHandlers['disconnect']) {
+      this.callbackHandlers['disconnect']?.forEach(callback => {
+        callback(topic);
+      });
+    }
   }
 
-  private handleDisconnect(callback: Function) {
-    console.log("handleDisconnect");
-  }
-
-  private handleAccountsChanged(callback: Function) {
-    console.log("handleAccountsChanged");
-  }
-
-  private handleChainChanged(callback: Function) {
-    console.log("handleChainChanged");
-  }
-
-  private handleMessage(callback: (message: ProviderMessage) => void) {
-    console.log("handleMessage");
-  }
 }
 
 export default EthereumAdapter;
