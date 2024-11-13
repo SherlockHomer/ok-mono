@@ -93,7 +93,7 @@ class EthereumAdapter extends BaseAdapter {
       cbParams =session?.namespaces?.eip155?.defaultChain;
     }else{
       event = 'accountChanged';
-      const accountsList = session.namespaces.eip155.accounts;
+      const accountsList = session?.namespaces?.eip155?.accounts;
       // split accountsList by chainId
       const transformedAccounts:Record<string, string[]> = {};
       for (let i = 0; i < accounts.length; i++) {
@@ -108,7 +108,7 @@ class EthereumAdapter extends BaseAdapter {
         }
         transformedAccounts[key].push(address);
       }
-      const chainId='eip:155:1'
+      const chainId= session?.namespaces?.eip155?.defaultChain;
       cbParams = transformedAccounts[chainId]
     }
     this.lastSession = session;
