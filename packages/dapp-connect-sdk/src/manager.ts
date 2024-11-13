@@ -21,6 +21,7 @@ export interface OKXConnectSdkOptions {
 
 // OKX connect SDK
 class OKXConnectSdk extends EventEmitter3 {
+  private static sdk: OKXConnectSdk;
   private static options: OKXConnectSdkOptions = {};
   private static initialized = false;
   private okxUniversalProvider: OKXUniversalConnectUI | null = null;
@@ -55,13 +56,13 @@ class OKXConnectSdk extends EventEmitter3 {
 
   static async init(options: OKXConnectSdkOptions = {}) {
     if (OKXConnectSdk.initialized) {
-      return;
+      return this.sdk;
     }
 
     this.options = options;
-    const sdk = new OKXConnectSdk();
-    await sdk.initialize();
-    return sdk;
+    this.sdk = new OKXConnectSdk();
+    await this.sdk.initialize();
+    return this.sdk;
   }
 
   // connect
@@ -78,19 +79,22 @@ class OKXConnectSdk extends EventEmitter3 {
     // }
 
     // TODO: Assume TG mini wallet flow first
-    if (!this.okxUniversalProvider) {
-      await this.initUniversalProvider();
-      await this.initProxies();
+    await this.initUniversalProvider();
+    await this.initProxies();
 
-      // Call connectOkxWallet() if opened in TG app
-      // if (isTelegram()) {
-      // await this.connectOkxWallet();
+    // Call connectOkxWallet() if opened in TG app
+    // if (isTelegram()) {
+    this.logger.info(
+      `OKX Universal Provider connected: `,
+      this.okxUniversalProvider?.connected()
+    );
+    if (!this.okxUniversalProvider?.connected()) {
+      await this.connectOkxWallet();
+    }
 
-      // inject window.ethereum if not exist
-      if (!window.ethereum) {
-        this.proxyEthereumProvider();
-      }
-      // }
+    // inject window.ethereum if not exist
+    if (!window.ethereum) {
+      this.proxyEthereumProvider();
     }
   }
 
@@ -206,22 +210,63 @@ class OKXConnectSdk extends EventEmitter3 {
       return;
     }
 
+    this.okxUniversalProvider.on("display_uri", (uri: string) => {
+      this.logger.info(`on - Display URI: `, uri);
+      // const modalRoot = document.getElementById("universal-widget-root");
+      // if (modalRoot) {
+      //   this.logger.info(`modalRoot: `, modalRoot);
+      //   modalRoot.style.visibility = "hidden";
+      // }
+    });
+
     // Session information changes (e.g. adding a custom chain) will trigger this event;
-    this.okxUniversalProvider.on("session_update", (session) => {
-      console.log(JSON.stringify(session));
+    this.okxUniversalProvider.on("session_update", (session: any) => {
+      this.logger.info(`on - Session updated: `, session);
       Object.keys(this.proxies).forEach((key) => {
-        if (this.proxies[key as SupportedNetworks]) {
-          this.proxies[key as SupportedNetworks].sessionUpdateCallback(session);
+        const proxy = this.proxies[key as SupportedNetworks];
+        if (proxy && proxy?.sessionUpdateCallback) {
+          proxy.sessionUpdateCallback(session);
         }
       });
     }); // Session information changes (e.g., adding a custom chain).
 
     // Disconnecting triggers this event;
-    this.okxUniversalProvider.on("session_delete", ({ topic }) => {
-      console.log(topic);
+    this.okxUniversalProvider.on("session_delete", ({ topic }: any) => {
+      this.logger.info(`on - Session deleted: `, topic);
       Object.keys(this.proxies).forEach((key) => {
-        if (this.proxies[key as SupportedNetworks]) {
-          this.proxies[key as SupportedNetworks].sessionDeleteCallback(topic);
+        const proxy = this.proxies[key as SupportedNetworks];
+        if (proxy && proxy?.sessionDeleteCallback) {
+          proxy.sessionDeleteCallback(topic);
+        }
+      });
+    });
+
+    this.okxUniversalProvider.on("default_chain_changed", (data: any) => {
+      this.logger.info(`on - Default chain changed: `, data);
+      Object.keys(this.proxies).forEach((key) => {
+        const proxy = this.proxies[key as SupportedNetworks];
+        if (proxy && proxy?.defaultChainChangeCallback) {
+          proxy.defaultChainChangeCallback(data);
+        }
+      });
+    });
+
+    this.okxUniversalProvider.on("okx_engine_connect_params", (data: any) => {
+      this.logger.info(`on - OKX engine connect params: `, data);
+      Object.keys(this.proxies).forEach((key) => {
+        const proxy = this.proxies[key as SupportedNetworks];
+        if (proxy && proxy?.okxEngineConnectParamsCallback) {
+          proxy.okxEngineConnectParamsCallback(data);
+        }
+      });
+    });
+
+    this.okxUniversalProvider.on("update_name_spaces", (data: any) => {
+      this.logger.info(`on - Update namespaces: `, data);
+      Object.keys(this.proxies).forEach((key) => {
+        const proxy = this.proxies[key as SupportedNetworks];
+        if (proxy && proxy?.updateNamespacesCallback) {
+          proxy.updateNamespacesCallback(data);
         }
       });
     });
@@ -267,7 +312,6 @@ class OKXConnectSdk extends EventEmitter3 {
     // https://tr.javascript.info/proxy
     const proxy = new Proxy(this.proxies[SupportedNetworks.ETHEREUM], {
       get(target, prop) {
-        console.log("get", target, prop);
         if (!SUPPORTED_METHODS.includes(prop as string)) {
           throw new Error(`Method not supported: ${prop as string}`);
         }
@@ -287,9 +331,7 @@ class OKXConnectSdk extends EventEmitter3 {
       },
       // to show supported methods only
       ownKeys(target) {
-        return Array.from(
-          new Set(["request", "on", "removeListener", "isOKXConnectProvider"])
-        );
+        return Array.from(new Set(...SUPPORTED_METHODS));
       },
     });
     // inject etheruem provider if window.ethereum not exist
