@@ -77,19 +77,21 @@ class EthereumAdapter extends BaseAdapter {
     }
   }
 
-
-
+  
+  public lastSession:Record<string, any>|null = null;
+  
   public sessionUpdateCallback(session:any){
     console.log(session);
-    const isConnect=true,isAccountChanged=false,isChainChanged=false;
-    let event ='no_methods';
-    if(isConnect){
+    let event;
+    if(!this.lastSession){
       event = 'connect';
-    }else if(isAccountChanged){
+    }else if (session?.namespaces?.eip155?.defaultChain !== this?.lastSession?.namespaces?.eip155?.defaultChain){
+      event = 'chainChanged'
+    }else{
       event = 'accountChanged';
-    }else if(isChainChanged){
-      event = 'chainChanged';
     }
+    this.lastSession = session;
+
     if (this.eventCallbackHandlers[event]) {
       this.eventCallbackHandlers[event]?.forEach(callback => {
         callback(session);
@@ -98,6 +100,7 @@ class EthereumAdapter extends BaseAdapter {
   }
   public sessionDeleteCallback(topic:any){
     console.log(topic);
+    this.lastSession = null;
     if (this.eventCallbackHandlers['disconnect']) {
       this.eventCallbackHandlers['disconnect']?.forEach(callback => {
         callback(topic);
@@ -108,3 +111,60 @@ class EthereumAdapter extends BaseAdapter {
 }
 
 export default EthereumAdapter;
+
+// connect session
+// {
+//   "topic": "2a7aa9678f5dadbc9dedb267b27835c9794ff9a66c3c70c03b8beaf3b8627f16",
+//   "sessionConfig": {
+//     "dappInfo": {
+//       "origin": "https://okx-sdk-demo.vercel.app",
+//       "url": "okx-sdk-demo.vercel.app",
+//       "name": "application name",
+//       "icon": "application icon url"
+//     },
+//     "openUniversalUrl": false,
+//     "redirect": "tg://resolve"
+//   },
+//   "namespaces": {
+//     "eip155": {
+//       "chains": [
+//         "eip155:1",
+//         "eip155:43114",
+//         "eip155:10"
+//       ],
+//       "accounts": [
+//         "eip155:1:0xfcd218cc65bca1dfe5fee91e8a2182d5643b094c",
+//         "eip155:43114:0xfcd218cc65bca1dfe5fee91e8a2182d5643b094c",
+//         "eip155:10:0xfcd218cc65bca1dfe5fee91e8a2182d5643b094c"
+//       ],
+//       "methods": [
+//         "personal_sign",
+//         "eth_signTypedData_v4",
+//         "eth_sendTransaction",
+//         "wallet_addEthereumChain",
+//         "wallet_watchAsset",
+//         "wallet_switchEthereumChain"
+//       ],
+//       "rpcMap": {
+//         "1": "https://eth.blockrazor.xyz",
+//         "43114": "https://eth.blockrazor.xyz"
+//       },
+//       "defaultChain": "1"
+//     }
+//   },
+//   "wallet": {
+//     "appVersion": "6.89.0",
+//     "features": {
+//       "ton": [
+//         "ton_sendTransaction"
+//       ]
+//     },
+//     "platform": "ios",
+//     "maxProtocolVersion": 1,
+//     "appName": "OKX Wallet"
+//   }
+// }
+
+// delete topic
+// 7c1fec3844ca05c43e95922a1a2cbc9595c8e67ca3fa7b8e6c416ebdd03a0829
+
