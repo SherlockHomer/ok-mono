@@ -78,10 +78,6 @@ class OKXConnectSdk extends EventEmitter3 {
     //   default:
     // }
 
-    // TODO: Assume TG mini wallet flow first
-    await this.sdk.initUniversalProvider();
-    await this.sdk.initProxies();
-
     // Call connectOkxWallet() if opened in TG app
     // if (isTelegram()) {
     this.sdk
@@ -92,11 +88,6 @@ class OKXConnectSdk extends EventEmitter3 {
       );
     if (!this.sdk.okxUniversalProvider?.connected()) {
       await this.sdk.connectOkxWallet();
-    }
-
-    // inject window.ethereum if not exist
-    if (!window.ethereum) {
-      this.sdk.proxyEthereumProvider();
     }
   }
 
@@ -117,6 +108,13 @@ class OKXConnectSdk extends EventEmitter3 {
   private async initialize() {
     this.logger.info(`Initializing OKX Connect SDK`);
     try {
+      await OKXConnectSdk.sdk.initUniversalProvider();
+      await OKXConnectSdk.sdk.initProxies();
+
+      // inject window.ethereum if not exist
+      if (!window.ethereum) {
+        OKXConnectSdk.sdk.proxyEthereumProvider();
+      }
       OKXConnectSdk.initialized = true;
       this.logger.info(`OKX Connect SDK initialized`);
     } catch (err) {
