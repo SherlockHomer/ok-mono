@@ -2,17 +2,16 @@
   "name": "@repo/dapp-connect-sdk",
   "version": "0.0.0",
   "private": true,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
   "exports": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "tsup src/index.ts --watch",
-    "build": "tsup"
+    "dev": "node esbuild.config.js --watch",
+    "build": "node esbuild.config.js"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "tsup": "^8.3.5",
     "typescript": "5.5.4"
