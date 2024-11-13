@@ -83,18 +83,39 @@ class EthereumAdapter extends BaseAdapter {
   public sessionUpdateCallback(session:any){
     console.log(session);
     let event;
+    let cbParams;
     if(!this.lastSession){
       event = 'connect';
+      // https://docs.metamask.io/wallet/reference/provider-api/#connect
+      cbParams ={chainId: session?.namespaces?.eip155?.defaultChain};
     }else if (session?.namespaces?.eip155?.defaultChain !== this?.lastSession?.namespaces?.eip155?.defaultChain){
-      event = 'chainChanged'
+      event = 'chainChanged';
+      cbParams =session?.namespaces?.eip155?.defaultChain;
     }else{
       event = 'accountChanged';
+      const accountsList = session.namespaces.eip155.accounts;
+      // split accountsList by chainId
+      const transformedAccounts:Record<string, string[]> = {};
+      for (let i = 0; i < accounts.length; i++) {
+        const account = accounts[i];
+        const parts = account.split(':');
+        const prefix = parts[0]; // 'eip155'
+        const chainId = parts[1]; // '1', '43114', '10'
+        const address = parts[2]; // '0xfcd218cc65bca1dfe5fee91e8a2182d5643b094c'
+        const key = `${prefix}:${chainId}`;
+        if (!transformedAccounts[key]) {
+          transformedAccounts[key] = [];
+        }
+        transformedAccounts[key].push(address);
+      }
+      const chainId='eip:155:1'
+      cbParams = transformedAccounts[chainId]
     }
     this.lastSession = session;
 
     if (this.eventCallbackHandlers[event]) {
       this.eventCallbackHandlers[event]?.forEach(callback => {
-        callback(session);
+        callback(cbParams);
       });
     }
   }
@@ -103,7 +124,7 @@ class EthereumAdapter extends BaseAdapter {
     this.lastSession = null;
     if (this.eventCallbackHandlers['disconnect']) {
       this.eventCallbackHandlers['disconnect']?.forEach(callback => {
-        callback(topic);
+        callback();
       });
     }
   }
