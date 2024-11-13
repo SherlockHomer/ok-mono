@@ -53,7 +53,7 @@ class EthereumAdapter extends BaseAdapter {
     return false;
   }
 
-  public callbackHandlers:Record<string, Set<Function>> = {
+  public eventCallbackHandlers:Record<string, Set<Function>> = {
     'connect': new Set(),
     'disconnect': new Set(),
     'accountsChanged': new Set(),
@@ -61,8 +61,8 @@ class EthereumAdapter extends BaseAdapter {
   };
 
   public on(event: string, callback: Function) {
-    if (this.callbackHandlers[event]) {
-      this.callbackHandlers[event].add(callback);
+    if (this.eventCallbackHandlers[event]) {
+      this.eventCallbackHandlers[event].add(callback);
     } else {
       console.log(`Event ${event} not supported`);
     }
@@ -70,8 +70,8 @@ class EthereumAdapter extends BaseAdapter {
 
   public removeListener(event: string, callback: Function) {
     console.log("removeListener");
-    if (this.callbackHandlers[event]) {
-      this.callbackHandlers[event].delete(callback);
+    if (this.eventCallbackHandlers[event]) {
+      this.eventCallbackHandlers[event].delete(callback);
     } else {
       console.log(`Event ${event} not supported`);
     }
@@ -90,16 +90,16 @@ class EthereumAdapter extends BaseAdapter {
     }else if(isChainChanged){
       event = 'chainChanged';
     }
-    if (this.callbackHandlers[event]) {
-      this.callbackHandlers[event]?.forEach(callback => {
+    if (this.eventCallbackHandlers[event]) {
+      this.eventCallbackHandlers[event]?.forEach(callback => {
         callback(session);
       });
     }
   }
   public sessionDeleteCallback(topic:any){
     console.log(topic);
-    if (this.callbackHandlers['disconnect']) {
-      this.callbackHandlers['disconnect']?.forEach(callback => {
+    if (this.eventCallbackHandlers['disconnect']) {
+      this.eventCallbackHandlers['disconnect']?.forEach(callback => {
         callback(topic);
       });
     }
