@@ -11,6 +11,15 @@ export enum SupportedChains {
   ETH = "eth",
 }
 
+export enum SupportedNetworks {
+  ETHEREUM = "Ethereum",
+  SOLANA = "Solana",
+  BITCOIN = "Bitcoin",
+  TON = "TON",
+  APTOS = "Aptos",
+  SUI = "Sui",
+}
+
 // supported chains map
 
 export enum UserPlatform {

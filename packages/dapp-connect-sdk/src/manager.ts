@@ -3,7 +3,7 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 import { Logger, LogLevel, logger } from "./logger";
 import EthereumAdapter from "./adapters/ethereumAdapter";
-import { SupportedWallets } from "./types";
+import { SupportedNetworks, SupportedWallets } from "./types";
 import { hasTelegramSDK, isTelegram } from "./utils/platform";
 
 declare let window: Window & {
@@ -24,9 +24,19 @@ class OKXConnectSdk extends EventEmitter3 {
   private static initialized = false;
   private okxUniversalProvider: OKXUniversalProvider | null = null;
   private proxies: {
-    ethereum: any;
+    [SupportedNetworks.ETHEREUM]: EthereumAdapter | null;
+    [SupportedNetworks.SOLANA]: any | null;
+    [SupportedNetworks.BITCOIN]: any | null;
+    [SupportedNetworks.TON]: any | null;
+    [SupportedNetworks.APTOS]: any | null;
+    [SupportedNetworks.SUI]: any | null;
   } = {
-    ethereum: null,
+    [SupportedNetworks.ETHEREUM]: null,
+    [SupportedNetworks.SOLANA]: null,
+    [SupportedNetworks.BITCOIN]: null,
+    [SupportedNetworks.TON]: null,
+    [SupportedNetworks.APTOS]: null,
+    [SupportedNetworks.SUI]: null,
   };
 
   protected logger: ReturnType<typeof logger.createScopedLogger>;
@@ -71,37 +81,28 @@ class OKXConnectSdk extends EventEmitter3 {
       await this.initUniversalProvider();
       await this.initProxies();
 
-      // proxy ethereum provider
-      // TODO: not working at the moment because of wallet extension already hijacked
-      // await this.proxyAllEthereumProvider();
-
       // Call connectOkxWallet() if opened in TG app
       // if (isTelegram()) {
-      await this.connectOkxWallet();
+      // await this.connectOkxWallet();
 
       // inject window.ethereum if not exist
       if (!window.ethereum) {
-        const proxy = new Proxy(this.proxies.ethereum, {
-          get(target, prop) {
-            console.log(`proxy get: `, target, prop);
-            // TODO: protect some methods
-            return Reflect.get(target, prop);
-          },
-          set(object, property, value) {
-            console.log(`proxy set: `, object, property, value);
-            // TODO: protect some methods
-            return Reflect.set(object, property, value);
-          },
-        });
-        // inject etheruem provider if window.ethereum not exist
-        Object.defineProperty(window, "ethereum", {
-          value: proxy,
-          writable: false,
-          configurable: false,
-        });
+        this.proxyEthereumProvider();
       }
       // }
     }
+  }
+
+  // disconnect
+  public async disconnect() {
+    this.logger.info(`Disconnecting from wallet`);
+    if (!OKXConnectSdk.initialized || this.okxUniversalProvider === null) {
+      this.logger.error(`OKX Connect SDK not initialized`);
+      return;
+    }
+
+    // disconnect from wallet
+    this.okxUniversalProvider.disconnect();
   }
 
   // Private methods
@@ -132,6 +133,9 @@ class OKXConnectSdk extends EventEmitter3 {
       this.okxUniversalProvider
     );
     this.logger.info(`OKX Universal Provider initialized`);
+
+    // subscribe to provider events
+    this.subscribeToProvider();
   }
 
   private async connectOkxWallet() {
@@ -151,31 +155,7 @@ class OKXConnectSdk extends EventEmitter3 {
       `Connecting to OKX Wallet - okxUniversalProvider: `,
       this.okxUniversalProvider.connect
     );
-    this.okxUniversalProvider.on("display_uri", (uri) => {
-      console.log("URI: ", uri, decodeURIComponent(uri));
-      // decode URI and get params in deeplink
-      const url = decodeURIComponent(uri);
-      console.log("URL: ", url);
-      const sessionInfo = url.split(
-        "?deeplink=okx://web3/wallet/connect?param="
-      )[1];
 
-      // redirect to TG app url
-      console.log("sessionInfo : ", sessionInfo);
-
-      const searchParams = `domain=OKX_WALLET_BOT&appname=start&startapp=${sessionInfo}`;
-      // new window
-      // https://core.telegram.org/api/bots/webapps#direct-link-mini-apps
-      const tgStartAppUrl = `tg://resolve?${searchParams}`;
-      console.log("tgStartAppUrl: ", tgStartAppUrl);
-
-      // open new window
-      // if (isTelegram()) {
-      //   window.location.href = tgStartAppUrl;
-      // } else {
-      window.open(tgStartAppUrl, "_blank");
-      // }
-    });
     const session = await this.okxUniversalProvider.connect({
       namespaces: {
         eip155: {
@@ -204,13 +184,42 @@ class OKXConnectSdk extends EventEmitter3 {
     this.logger.info(`OKX Universal Provider eth_requestAccounts : `, accounts);
   }
 
+  private subscribeToProvider() {
+    if (!this.okxUniversalProvider) {
+      this.logger.error(`OKX Universal Provider not initialized`);
+      return;
+    }
+
+    // Session information changes (e.g. adding a custom chain) will trigger this event;
+    this.okxUniversalProvider.on("session_update", (session) => {
+      console.log(JSON.stringify(session));
+      Object.keys(this.proxies).forEach((key) => {
+        if (this.proxies[key as SupportedNetworks]) {
+          this.proxies[key as SupportedNetworks].sessionUpdateCallback(session);
+        }
+      });
+    }); // Session information changes (e.g., adding a custom chain).
+
+    // Disconnecting triggers this event;
+    this.okxUniversalProvider.on("session_delete", ({ topic }) => {
+      console.log(topic);
+      Object.keys(this.proxies).forEach((key) => {
+        if (this.proxies[key as SupportedNetworks]) {
+          this.proxies[key as SupportedNetworks].sessionDeleteCallback(topic);
+        }
+      });
+    });
+  }
+
   private async initProxies() {
     if (!this.okxUniversalProvider) {
       this.logger.error(`OKX Universal Provider not initialized`);
       return;
     }
     // etheum provider proxy
-    this.proxies.ethereum = new EthereumAdapter(this.okxUniversalProvider);
+    this.proxies[SupportedNetworks.ETHEREUM] = new EthereumAdapter(
+      this.okxUniversalProvider
+    );
   }
 
   private initializeLogger(): ReturnType<typeof logger.createScopedLogger> {
@@ -219,69 +228,59 @@ class OKXConnectSdk extends EventEmitter3 {
     return logger.createScopedLogger("OKXConnectSdk");
   }
 
-  private async proxyEthereumProvider(ethereumProvider: any, name: string) {
-    // Check if the provider is already proxied
-    if (ethereumProvider.isOkxConnectProvider) return;
+  private async proxyEthereumProvider() {
+    if (window.ethereum) {
+      this.logger.info(`Already proxied Ethereum provider`);
+      return;
+    }
 
-    this.logger.info(
-      `Proxying Ethereum provider: ${name}`,
-      ethereumProvider.request
-    );
+    if (!this.proxies[SupportedNetworks.ETHEREUM]) {
+      this.logger.error(`Ethereum proxy not initialized`);
+      return;
+    }
 
-    const requestHandler = {
-      apply: async (target: any, thisArg: any, argumentsList: any[]) => {
-        const [request] = argumentsList;
-        this.logger.debug(
-          `Ethereum provider request: ${target}, ${thisArg}, ${argumentsList}, ${request.method}, ${JSON.stringify(request.params)}`
-        );
-
-        // use proxies[ethereum]
-        // this.proxies.ethereum.request(request.method, request.params);
-      },
-
-      get: (target: any, prop: string) => {
-        this.logger.debug(
-          `Ethereum provider get: ${target}, ${prop}, ${target[prop]}`
-        );
-        if (prop === "request") {
-          return target[prop];
+    const SUPPORTED_METHODS = [
+      "request",
+      "on",
+      "removeListener",
+      "isOKXConnectProvider",
+      "getLogger",
+      "logger",
+      "okxUniversalProvider",
+    ];
+    // https://tr.javascript.info/proxy
+    const proxy = new Proxy(this.proxies[SupportedNetworks.ETHEREUM], {
+      get(target, prop) {
+        console.log("get", target, prop);
+        if (!SUPPORTED_METHODS.includes(prop as string)) {
+          throw new Error(`Method not supported: ${prop as string}`);
         }
-
-        return target[prop];
+        return Reflect.get(target, prop);
       },
-      set: (target: any, prop: string, value: any) => {
-        this.logger.debug(
-          `Ethereum provider set: ${target}, ${prop}, ${value}`
+      set(object, prop, value) {
+        if (!SUPPORTED_METHODS.includes(prop as string)) {
+          throw new Error(`Method not supported: ${prop as string}`);
+        }
+        return Reflect.set(object, prop, value);
+      },
+      deleteProperty(target, prop) {
+        if (!SUPPORTED_METHODS.includes(prop as string)) {
+          throw new Error(`Method not supported: ${prop as string}`);
+        }
+        return Reflect.deleteProperty(target, prop);
+      },
+      // to show supported methods only
+      ownKeys(target) {
+        return Array.from(
+          new Set(["request", "on", "removeListener", "isOKXConnectProvider"])
         );
-        target[prop] = value;
-        return true;
       },
-    };
-
-    this.logger.info(
-      `Proxying Ethereum provider - before: ${ethereumProvider.request}`
-    );
-
-    // Object.defineProperty(ethereumProvider, "request", {
-    //   value: new Proxy(ethereumProvider.request, requestHandler),
-    //   writable: true,
-    // });
-
-    ethereumProvider.isOkxConnectProvider = true;
-  }
-
-  private async proxyAllEthereumProvider() {
-    if (!window.ethereum) return;
-
-    // Proxy the default window.ethereum provider
-    this.proxyEthereumProvider(window.ethereum, "window.ethereum");
-
-    // Proxy any other providers listed on the window.ethereum object
-    window.ethereum?.providers?.forEach((provider: any, i: number) => {
-      this.logger.info(
-        `Proxying Ethereum provider: window.ethereum.providers[${i}]`
-      );
-      this.proxyEthereumProvider(provider, `window.ethereum.providers[${i}]`);
+    });
+    // inject etheruem provider if window.ethereum not exist
+    Object.defineProperty(window, "ethereum", {
+      value: proxy,
+      writable: false,
+      configurable: false,
     });
   }
 }

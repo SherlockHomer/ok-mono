@@ -5,13 +5,7 @@ import BaseAdapter from "./baseAdapter";
 import { ProviderMessage } from "../types";
 
 class EthereumAdapter extends BaseAdapter {
-  constructor(okxUniversalProvider: OKXUniversalProvider) {
-    super(okxUniversalProvider);
-
-    this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
-  }
-
-  EVM_SUPPORTED_METHODS = [
+  private static EVM_SUPPORTED_METHODS: string[] = [
     "personal_sign",
     "eth_signTypedData_v4",
     "eth_sendTransaction",
@@ -22,13 +16,20 @@ class EthereumAdapter extends BaseAdapter {
     "wallet_addEthereumChain",
     "wallet_watchAsset",
   ];
+
+  constructor(okxUniversalProvider: OKXUniversalProvider) {
+    super(okxUniversalProvider);
+
+    this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
+  }
+
   public async request(args: { method: string; params: any[] }) {
     const { method, params } = args;
     this.getLogger().debug("EthereumAdapter request", method, params);
     // get chain
     const chain = "eip155:1";
     const requestData = params ? { method, params } : { method };
-    if (this.EVM_SUPPORTED_METHODS.includes(method)) {
+    if (EthereumAdapter.EVM_SUPPORTED_METHODS.includes(method)) {
       this.getLogger().debug("Requesting accounts: ", method, requestData);
       try {
         const result = await this.okxUniversalProvider.request(
