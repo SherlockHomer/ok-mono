@@ -66,12 +66,12 @@ class OKXConnectSdk extends EventEmitter3 {
   }
 
   // connect
-  public async connect(wallet: SupportedWalletTypes) {
-    this.logger.info(`Connecting to wallet: ${wallet}`);
+  static async connect(wallet: SupportedWalletTypes) {
     if (!OKXConnectSdk.initialized) {
-      this.logger.error(`OKX Connect SDK not initialized`);
+      this.sdk.getLogger().error(`OKX Connect SDK not initialized`);
       return;
     }
+    this.sdk.getLogger().info(`Connecting to wallet: ${wallet}`);
 
     // switch (wallet) {
     //   // TODO: Add support for other wallets such as MetaMask, WalletConnect, Phantom, etc.
@@ -79,22 +79,24 @@ class OKXConnectSdk extends EventEmitter3 {
     // }
 
     // TODO: Assume TG mini wallet flow first
-    await this.initUniversalProvider();
-    await this.initProxies();
+    await this.sdk.initUniversalProvider();
+    await this.sdk.initProxies();
 
     // Call connectOkxWallet() if opened in TG app
     // if (isTelegram()) {
-    this.logger.info(
-      `OKX Universal Provider connected: `,
-      this.okxUniversalProvider?.connected()
-    );
-    if (!this.okxUniversalProvider?.connected()) {
-      await this.connectOkxWallet();
+    this.sdk
+      .getLogger()
+      .info(
+        `OKX Universal Provider connected: `,
+        this.sdk.okxUniversalProvider?.connected()
+      );
+    if (!this.sdk.okxUniversalProvider?.connected()) {
+      await this.sdk.connectOkxWallet();
     }
 
     // inject window.ethereum if not exist
     if (!window.ethereum) {
-      this.proxyEthereumProvider();
+      this.sdk.proxyEthereumProvider();
     }
   }
 

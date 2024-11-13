@@ -43,9 +43,8 @@ export function getSupportWalletList(): Wallet[] {
 export async function connectCallBack(wallet: Wallet) {
   console.table(wallet);
 
-  // init sdk
-  const sdk = await OKXConnectSdk.init();
-  await sdk.connect(wallet.name as keyof typeof SupportedWallets);
+  // connect sdk
+  await OKXConnectSdk.connect(wallet.name as keyof typeof SupportedWallets);
 }
 
 export * from "./ui/ConnectModal/index";
