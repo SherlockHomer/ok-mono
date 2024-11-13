@@ -1,7 +1,7 @@
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 import BaseAdapter from "./baseAdapter";
-
+import {sortAccountsByChainId} from '../utils/evm.ts'
 import { ProviderMessage } from "../types";
 
 class EthereumAdapter extends BaseAdapter {
@@ -94,20 +94,7 @@ class EthereumAdapter extends BaseAdapter {
     }else{
       event = 'accountChanged';
       const accountsList = session?.namespaces?.eip155?.accounts;
-      // split accountsList by chainId
-      const transformedAccounts:Record<string, string[]> = {};
-      for (let i = 0; i < accounts.length; i++) {
-        const account = accounts[i];
-        const parts = account.split(':');
-        const prefix = parts[0]; // 'eip155'
-        const chainId = parts[1]; // '1', '43114', '10'
-        const address = parts[2]; // '0xfcd218cc65bca1dfe5fee91e8a2182d5643b094c'
-        const key = `${prefix}:${chainId}`;
-        if (!transformedAccounts[key]) {
-          transformedAccounts[key] = [];
-        }
-        transformedAccounts[key].push(address);
-      }
+      const transformedAccounts= sortAccountsByChainId(accountsList);
       const chainId= session?.namespaces?.eip155?.defaultChain;
       cbParams = transformedAccounts[chainId]
     }
