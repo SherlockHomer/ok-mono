@@ -18,6 +18,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "@okxconnect/ui": "^1.4.7",
     "@okxconnect/universal-provider": "^1.4.4",
     "eventemitter3": "^5.0.1",
     "vanjs-core": "^1.5.2",

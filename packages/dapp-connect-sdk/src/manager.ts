@@ -1,5 +1,6 @@
 import EventEmitter3 from "eventemitter3";
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
+import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui";
 
 import { Logger, LogLevel, logger } from "./logger";
 import EthereumAdapter from "./adapters/ethereumAdapter";
@@ -22,7 +23,7 @@ export interface OKXConnectSdkOptions {
 class OKXConnectSdk extends EventEmitter3 {
   private static options: OKXConnectSdkOptions = {};
   private static initialized = false;
-  private okxUniversalProvider: OKXUniversalProvider | null = null;
+  private okxUniversalProvider: OKXUniversalConnectUI | null = null;
   private proxies: {
     ethereum: any;
   } = {
@@ -118,12 +119,34 @@ class OKXConnectSdk extends EventEmitter3 {
   }
 
   private async initUniversalProvider() {
-    this.logger.info(`Initializing OKX Universal Provider`);
+    this.logger.info(
+      `Initializing OKX Universal Provider: `,
+      OKXUniversalProvider
+    );
     // initialize @okxconnect/universal-provider
-    this.okxUniversalProvider = await OKXUniversalProvider.init({
+    // TODO: Temporary switch to OKXUniversalConnectUI becoz of the SDK TG limitation
+    // this.okxUniversalProvider = await OKXUniversalProvider.init({
+    //   dappMetaData: {
+    //     name: "OKX WalletConnect UI Demo",
+    //     icon: "https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png",
+    //   },
+    // });
+
+    // initialize @okxconnect/ui
+    this.logger.info(`Initializing OKX UI: `, OKXUniversalConnectUI);
+    this.okxUniversalProvider = await OKXUniversalConnectUI.init({
       dappMetaData: {
-        name: "OKX WalletConnect UI Demo",
         icon: "https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png",
+        name: "OKX WalletConnect UI Demo",
+      },
+      actionsConfiguration: {
+        returnStrategy: "tg://resolve",
+        modals: "all",
+        tmaReturnUrl: "back",
+      },
+      language: "en_US",
+      uiPreferences: {
+        theme: THEME.LIGHT,
       },
     });
 
@@ -147,36 +170,7 @@ class OKXConnectSdk extends EventEmitter3 {
     }
     this.logger.info(`Connecting to OKX Wallet`);
     // connect wallet to to EVM
-    this.logger.info(
-      `Connecting to OKX Wallet - okxUniversalProvider: `,
-      this.okxUniversalProvider.connect
-    );
-    this.okxUniversalProvider.on("display_uri", (uri) => {
-      console.log("URI: ", uri, decodeURIComponent(uri));
-      // decode URI and get params in deeplink
-      const url = decodeURIComponent(uri);
-      console.log("URL: ", url);
-      const sessionInfo = url.split(
-        "?deeplink=okx://web3/wallet/connect?param="
-      )[1];
-
-      // redirect to TG app url
-      console.log("sessionInfo : ", sessionInfo);
-
-      const searchParams = `domain=OKX_WALLET_BOT&appname=start&startapp=${sessionInfo}`;
-      // new window
-      // https://core.telegram.org/api/bots/webapps#direct-link-mini-apps
-      const tgStartAppUrl = `tg://resolve?${searchParams}`;
-      console.log("tgStartAppUrl: ", tgStartAppUrl);
-
-      // open new window
-      // if (isTelegram()) {
-      //   window.location.href = tgStartAppUrl;
-      // } else {
-      window.open(tgStartAppUrl, "_blank");
-      // }
-    });
-    const session = await this.okxUniversalProvider.connect({
+    const session = await this.okxUniversalProvider.openModal({
       namespaces: {
         eip155: {
           chains: ["eip155:1"],
@@ -191,11 +185,9 @@ class OKXConnectSdk extends EventEmitter3 {
           chains: ["eip155:43114"],
         },
       },
-      sessionConfig: {
-        redirect: "tg://resolve",
-      },
     });
-    this.logger.info(`OKX Universal Provider connected: `, session);
+
+    this.logger.info(`OKX Wallet session: `, session);
 
     const accounts = this.okxUniversalProvider.request(
       { method: "eth_requestAccounts" },
