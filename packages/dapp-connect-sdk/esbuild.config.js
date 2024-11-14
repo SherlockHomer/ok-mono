@@ -7,13 +7,13 @@ const buildOptions = {
   bundle: true,
   sourcemap: true,
   outdir: 'dist',
-  format: 'cjs',
-  // splitting: true, // true for esm
+  format: 'esm',
+  splitting: true, // true for esm
   minify: !isDev,
   treeShaking: true,
   external: [],
   platform: 'browser',
-  external: ['./node_modules/*'], // 忽略 node_modules 中的依赖项
+  // external: ['./node_modules/*'], // 忽略 node_modules 中的依赖项
   target: ['esnext'],
   logLevel: 'info',
 };
