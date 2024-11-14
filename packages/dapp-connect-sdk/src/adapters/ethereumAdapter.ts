@@ -1,9 +1,9 @@
-import { OKXUniversalProvider } from "@okxconnect/universal-provider";
+import { OKXUniversalProvider } from '@okxconnect/universal-provider';
 
-import BaseAdapter from "./baseAdapter";
-import { sortAccountsByChainId } from "../utils/evm.ts";
-import { OKX_MINI_WALLET } from "../wallet/index.ts";
-import { ProviderMessage } from "../types/index.ts";
+import BaseAdapter from './baseAdapter';
+import { sortAccountsByChainId } from '../utils/evm.ts';
+import { OKX_MINI_WALLET } from '../wallet/index.ts';
+import { ProviderMessage } from '../types/index.ts';
 
 class EthereumAdapter extends BaseAdapter {
   private static EVM_SUPPORTED_METHODS: string[] = [
@@ -17,9 +17,6 @@ class EthereumAdapter extends BaseAdapter {
     "wallet_addEthereumChain",
     "wallet_watchAsset",
   ];
-
-  public isMetaMask = true;
-
   public eip6963ProviderInfo: any;
 
   constructor(okxUniversalProvider: OKXUniversalProvider) {
