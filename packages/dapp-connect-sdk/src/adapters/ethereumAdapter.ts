@@ -1,7 +1,8 @@
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 import BaseAdapter from "./baseAdapter";
-import {sortAccountsByChainId} from '../utils/evm.ts'
+import { sortAccountsByChainId } from "../utils/evm.ts";
+import { OKX_MINI_WALLET } from "../wallet/index.ts";
 import { ProviderMessage } from "../types/index.ts";
 
 class EthereumAdapter extends BaseAdapter {
@@ -17,8 +18,15 @@ class EthereumAdapter extends BaseAdapter {
     "wallet_watchAsset",
   ];
 
+  public isMetaMask = true;
+
+  public eip6963ProviderInfo: any;
+
   constructor(okxUniversalProvider: OKXUniversalProvider) {
     super(okxUniversalProvider);
+
+    // setup eip-6963 provider info
+    this.eip6963ProviderInfo = OKX_MINI_WALLET;
 
     this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
   }
@@ -28,16 +36,29 @@ class EthereumAdapter extends BaseAdapter {
     this.getLogger().debug("EthereumAdapter request", method, params);
     // get chain
     const chain = "eip155:1";
-    const requestData = params ? { method, params } : { method };
+    let requestData = params ? { method, params } : { method };
     if (EthereumAdapter.EVM_SUPPORTED_METHODS.includes(method)) {
       this.getLogger().debug("Requesting accounts: ", method, requestData);
+      switch (method) {
+        case "personal_sign":
+          // TODO: Implement personal_sign method
+          break;
+        case "eth_signTypedData_v4":
+          requestData = {
+            method: "eth_signTypedData_v4",
+            params: [params[0], JSON.parse(params[1])],
+          };
+          break;
+      }
       try {
         const result = await this.okxUniversalProvider.request(
           requestData,
           chain
         );
+        this.getLogger().debug("Requesting accounts result: ", method, result);
         return Promise.resolve(result);
       } catch (error) {
+        this.getLogger().error(`Requesting accounts error: ${error.message}`);
         return Promise.reject(error);
       }
     } else {
@@ -46,76 +67,103 @@ class EthereumAdapter extends BaseAdapter {
     }
   }
 
-  public isConnected(){
-    if(this.okxUniversalProvider.session){
+  public isConnected() {
+    if (this.okxUniversalProvider.session) {
       return true;
     }
     return false;
   }
 
-  public eventCallbackHandlers:Record<string, Set<Function>> = {
-    'connect': new Set(),
-    'disconnect': new Set(),
-    'accountsChanged': new Set(),
-    'chainChanged': new Set(),
+  public eventCallbackHandlers: Record<string, Set<Function>> = {
+    connect: new Set(),
+    disconnect: new Set(),
+    accountsChanged: new Set(),
+    chainChanged: new Set(),
   };
 
-  public on(event: string, callback: Function) {
-    if (this.eventCallbackHandlers[event]) {
-      this.eventCallbackHandlers[event].add(callback);
-    } else {
-      console.log(`Event ${event} not supported`);
-    }
+  on<T extends string | symbol>(
+    event: T,
+    fn: (...args: any[]) => void,
+    context?: any
+  ): this {
+    this.getLogger().debug("eventemitter - on", event, fn);
+    return super.on(event, fn, context);
   }
 
-  public removeListener(event: string, callback: Function) {
-    console.log("removeListener");
-    if (this.eventCallbackHandlers[event]) {
-      this.eventCallbackHandlers[event].delete(callback);
-    } else {
-      console.log(`Event ${event} not supported`);
-    }
+  removeListener<T extends string | symbol>(
+    event: T,
+    fn?: ((...args: any[]) => void) | undefined,
+    context?: any,
+    once?: boolean
+  ): this {
+    return super.removeListener(event, fn, context, once);
   }
 
-  
-  public lastSession:Record<string, any>|null = null;
-  
-  public sessionUpdateCallback(session:any){
-    console.log(session);
+  // public on(event: string, callback: Function) {
+  //   this.logger.debug("on", event, callback);
+  //   if (this.eventCallbackHandlers[event]) {
+  //     this.eventCallbackHandlers[event].add(callback);
+  //   } else {
+  //     console.log(`Event ${event} not supported`);
+  //   }
+  // }
+
+  // public removeListener(event: string, callback: Function) {
+  //   console.log("removeListener");
+  //   if (this.eventCallbackHandlers[event]) {
+  //     this.eventCallbackHandlers[event].delete(callback);
+  //   } else {
+  //     console.log(`Event ${event} not supported`);
+  //   }
+  // }
+
+  public lastSession: Record<string, any> | null = null;
+
+  public sessionUpdateCallback(session: any) {
+    this.getLogger().info(
+      `session: `,
+      session,
+      session?.namespaces?.eip155?.defaultChain,
+      this
+    );
     let event;
     let cbParams;
-    if(!this.lastSession){
-      event = 'connect';
+    this.emit("chainChanged", session?.namespaces?.eip155?.defaultChain);
+    if (!this.lastSession) {
+      event = "connect";
       // https://docs.metamask.io/wallet/reference/provider-api/#connect
-      cbParams ={chainId: session?.namespaces?.eip155?.defaultChain};
-    }else if (session?.namespaces?.eip155?.defaultChain !== this?.lastSession?.namespaces?.eip155?.defaultChain){
-      event = 'chainChanged';
-      cbParams =session?.namespaces?.eip155?.defaultChain;
-    }else{
-      event = 'accountChanged';
+      cbParams = { chainId: session?.namespaces?.eip155?.defaultChain };
+    } else if (
+      session?.namespaces?.eip155?.defaultChain !==
+      this?.lastSession?.namespaces?.eip155?.defaultChain
+    ) {
+      event = "chainChanged";
+      cbParams = session?.namespaces?.eip155?.defaultChain;
+      // this.emit("chainChanged", cbParams);
+    } else {
+      event = "accountChanged";
       const accountsList = session?.namespaces?.eip155?.accounts;
-      const transformedAccounts= sortAccountsByChainId(accountsList);
-      const chainId= session?.namespaces?.eip155?.defaultChain;
-      cbParams = transformedAccounts[chainId]
+      const transformedAccounts = sortAccountsByChainId(accountsList);
+      const chainId = session?.namespaces?.eip155?.defaultChain;
+      cbParams = transformedAccounts[chainId];
     }
     this.lastSession = session;
 
     if (this.eventCallbackHandlers[event]) {
-      this.eventCallbackHandlers[event]?.forEach(callback => {
+      this.eventCallbackHandlers[event]?.forEach((callback) => {
         callback(cbParams);
       });
     }
   }
-  public sessionDeleteCallback(topic:any){
+  public sessionDeleteCallback(topic: any) {
     console.log(topic);
     this.lastSession = null;
-    if (this.eventCallbackHandlers['disconnect']) {
-      this.eventCallbackHandlers['disconnect']?.forEach(callback => {
+    if (this.eventCallbackHandlers["disconnect"]) {
+      this.eventCallbackHandlers["disconnect"]?.forEach((callback) => {
         callback();
       });
     }
   }
-
 }
 
 export default EthereumAdapter;
@@ -175,4 +223,3 @@ export default EthereumAdapter;
 
 // delete topic
 // 7c1fec3844ca05c43e95922a1a2cbc9595c8e67ca3fa7b8e6c416ebdd03a0829
-

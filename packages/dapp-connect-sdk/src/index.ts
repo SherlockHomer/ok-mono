@@ -1,8 +1,8 @@
 import OKXConnectSdk from './manager';
 import { getSupportWalletList } from './wallet';
-import { SupportedWallets, type Wallet } from './types';
+import { SupportedWallets, type EIP6963ProviderWalletInfo } from './types';
 
-export async function connectCallBack(wallet: Wallet) {
+export async function connectCallBack(wallet: EIP6963ProviderWalletInfo) {
   console.table(wallet);
   // connect sdk
   await OKXConnectSdk.connect(wallet.name as keyof typeof SupportedWallets);

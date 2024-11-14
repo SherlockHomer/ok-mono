@@ -6,7 +6,7 @@ export enum SupportedWallets {
   OKX_MINI_WALLET = 'okx_mini_wallet', // tg mini wallet
 }
 
-export type Wallet = {
+export type EIP6963ProviderWalletInfo = {
   uuid: string;
   name: string;
   icon?: string;
