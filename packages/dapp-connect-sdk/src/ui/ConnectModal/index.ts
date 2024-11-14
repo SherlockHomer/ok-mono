@@ -1,10 +1,17 @@
 import van from "vanjs-core";
 import { Modal } from "vanjs-ui";
+import { isTelegram } from "../../utils/platform";
 import { getSupportWalletList, connectCallBack } from "../../index";
+import { OKX_MINI_WALLET } from "../../wallet";
 
 const { button, div, p, h3 } = van.tags;
 
 export function openConnectModal() {
+  if (isTelegram()) {
+    // connect with TG Mini Wallet directly
+    connectCallBack(OKX_MINI_WALLET);
+    return;
+  } 
   const wallets = getSupportWalletList();
   const closed = van.state(false);
   const formDom = div(
