@@ -3,19 +3,19 @@ import { OKXUniversalProvider } from '@okxconnect/universal-provider';
 import BaseAdapter from './baseAdapter';
 import { sortAccountsByChainId } from '../utils/evm.ts';
 import { OKX_MINI_WALLET } from '../wallet/index.ts';
-import { ProviderMessage } from '../types/index.ts';
+import { EIP155_METHODS } from '../constant/methods.ts';
 
 class EthereumAdapter extends BaseAdapter {
   private static EVM_SUPPORTED_METHODS: string[] = [
-    "personal_sign",
-    "eth_signTypedData_v4",
-    "eth_sendTransaction",
-    "eth_accounts",
-    "eth_requestAccounts",
-    "eth_chainId",
-    "wallet_switchEthereumChain",
-    "wallet_addEthereumChain",
-    "wallet_watchAsset",
+    'personal_sign',
+    'eth_signTypedData_v4',
+    'eth_sendTransaction',
+    'eth_accounts',
+    'eth_requestAccounts',
+    'eth_chainId',
+    'wallet_switchEthereumChain',
+    'wallet_addEthereumChain',
+    'wallet_watchAsset',
   ];
   public eip6963ProviderInfo: any;
 
@@ -25,24 +25,30 @@ class EthereumAdapter extends BaseAdapter {
     // setup eip-6963 provider info
     this.eip6963ProviderInfo = OKX_MINI_WALLET;
 
-    this.getLogger().debug("okxUniversalProvider: ", this.okxUniversalProvider);
+    this.getLogger().debug('okxUniversalProvider: ', this.okxUniversalProvider);
   }
 
   public async request(args: { method: string; params: any[] }) {
     const { method, params } = args;
-    this.getLogger().debug("EthereumAdapter request", method, params);
+    this.getLogger().debug('EthereumAdapter request', method, params);
     // get chain
-    const chain = "eip155:1";
+    const chain = 'eip155:1';
     let requestData = params ? { method, params } : { method };
+    console.log('params', params);
+
     if (EthereumAdapter.EVM_SUPPORTED_METHODS.includes(method)) {
-      this.getLogger().debug("Requesting accounts: ", method, requestData);
+      this.getLogger().debug('Requesting accounts: ', method, requestData);
       switch (method) {
-        case "personal_sign":
+        case EIP155_METHODS.PERSONAL_SIGN:
+          requestData = {
+            method: EIP155_METHODS.PERSONAL_SIGN,
+            params: [params[0], params[1]],
+          };
           // TODO: Implement personal_sign method
           break;
-        case "eth_signTypedData_v4":
+        case EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4:
           requestData = {
-            method: "eth_signTypedData_v4",
+            method: EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4,
             params: [params[0], JSON.parse(params[1])],
           };
           break;
@@ -50,9 +56,9 @@ class EthereumAdapter extends BaseAdapter {
       try {
         const result = await this.okxUniversalProvider.request(
           requestData,
-          chain
+          chain,
         );
-        this.getLogger().debug("Requesting accounts result: ", method, result);
+        this.getLogger().debug('Requesting accounts result: ', method, result);
         return Promise.resolve(result);
       } catch (error) {
         this.getLogger().error(`Requesting accounts error: ${error.message}`);
@@ -81,9 +87,9 @@ class EthereumAdapter extends BaseAdapter {
   on<T extends string | symbol>(
     event: T,
     fn: (...args: any[]) => void,
-    context?: any
+    context?: any,
   ): this {
-    this.getLogger().debug("eventemitter - on", event, fn);
+    this.getLogger().debug('eventemitter - on', event, fn);
     return super.on(event, fn, context);
   }
 
@@ -91,7 +97,7 @@ class EthereumAdapter extends BaseAdapter {
     event: T,
     fn?: ((...args: any[]) => void) | undefined,
     context?: any,
-    once?: boolean
+    once?: boolean,
   ): this {
     return super.removeListener(event, fn, context, once);
   }
@@ -121,24 +127,24 @@ class EthereumAdapter extends BaseAdapter {
       `session: `,
       session,
       session?.namespaces?.eip155?.defaultChain,
-      this
+      this,
     );
     let event;
     let cbParams;
-    this.emit("chainChanged", session?.namespaces?.eip155?.defaultChain);
+    this.emit('chainChanged', session?.namespaces?.eip155?.defaultChain);
     if (!this.lastSession) {
-      event = "connect";
+      event = 'connect';
       // https://docs.metamask.io/wallet/reference/provider-api/#connect
       cbParams = { chainId: session?.namespaces?.eip155?.defaultChain };
     } else if (
       session?.namespaces?.eip155?.defaultChain !==
       this?.lastSession?.namespaces?.eip155?.defaultChain
     ) {
-      event = "chainChanged";
+      event = 'chainChanged';
       cbParams = session?.namespaces?.eip155?.defaultChain;
       // this.emit("chainChanged", cbParams);
     } else {
-      event = "accountChanged";
+      event = 'accountChanged';
       const accountsList = session?.namespaces?.eip155?.accounts;
       const transformedAccounts = sortAccountsByChainId(accountsList);
       const chainId = session?.namespaces?.eip155?.defaultChain;
@@ -155,8 +161,8 @@ class EthereumAdapter extends BaseAdapter {
   public sessionDeleteCallback(topic: any) {
     console.log(topic);
     this.lastSession = null;
-    if (this.eventCallbackHandlers["disconnect"]) {
-      this.eventCallbackHandlers["disconnect"]?.forEach((callback) => {
+    if (this.eventCallbackHandlers['disconnect']) {
+      this.eventCallbackHandlers['disconnect']?.forEach((callback) => {
         callback();
       });
     }
