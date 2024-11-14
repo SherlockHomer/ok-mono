@@ -1,3 +1,4 @@
 [submodule "apps/quanquan-dapp"]
 	path = apps/quanquan-dapp
 	url = https://github.com/SherlockHomer/quanquan-dapp-demo
+	ignore = dirty
