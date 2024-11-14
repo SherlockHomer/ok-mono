@@ -71,6 +71,10 @@ class EthereumAdapter extends BaseAdapter {
     return false;
   }
 
+  public async disconnect() {
+    this.okxUniversalProvider.disconnect();
+  }
+
   public eventCallbackHandlers: Record<string, Set<Function>> = {
     connect: new Set(),
     disconnect: new Set(),
