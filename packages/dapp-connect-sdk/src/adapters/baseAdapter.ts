@@ -1,6 +1,6 @@
 // basic adapter class for request, on, removeListener and RPC error handling
-import { OKXUniversalProvider } from "@okxconnect/universal-provider";
-import { Logger, LogLevel, logger } from "../logger";
+import { type OKXUniversalProvider } from "@okxconnect/universal-provider";
+import { Logger, LogLevel, logger } from "../utils/logger";
 
 abstract class BaseAdapter {
   protected okxUniversalProvider: any;

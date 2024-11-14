@@ -1,11 +1,11 @@
-import EventEmitter3 from "eventemitter3";
-import { OKXUniversalProvider } from "@okxconnect/universal-provider";
-import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui";
+import EventEmitter3 from 'eventemitter3';
+import { OKXUniversalProvider } from '@okxconnect/universal-provider';
+import { OKXUniversalConnectUI, THEME } from '@okxconnect/ui';
 
-import { Logger, LogLevel, logger } from "./logger";
-import EthereumAdapter from "./adapters/ethereumAdapter";
-import { SupportedNetworks, SupportedWallets } from "./types";
-import { hasTelegramSDK, isTelegram } from "./utils/platform";
+import { Logger, LogLevel, logger } from './utils/logger';
+import EthereumAdapter from './adapters/ethereumAdapter';
+import { SupportedNetworks, SupportedWallets } from './types';
+import { hasTelegramSDK, isTelegram } from './utils/platform';
 
 declare let window: Window & {
   [index: string]: any;
@@ -54,15 +54,29 @@ class OKXConnectSdk extends EventEmitter3 {
     return this.logger;
   }
 
+  static hackOKXConnectUI() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #universal-widget-root {
+        position: relative;
+        z-index: -999;
+        opacity: 0;
+      }
+    `;
+    // 将其添加到 <head> 元素中
+    document.head.appendChild(style);
+  }
+
   static async init(options: OKXConnectSdkOptions = {}) {
     if (OKXConnectSdk.initialized) {
-      return this.sdk;
+      return OKXConnectSdk.sdk;
     }
+    OKXConnectSdk.hackOKXConnectUI();
 
-    this.options = options;
-    this.sdk = new OKXConnectSdk();
-    await this.sdk.initialize();
-    return this.sdk;
+    OKXConnectSdk.options = options;
+    OKXConnectSdk.sdk = new OKXConnectSdk();
+    await OKXConnectSdk.sdk.initialize();
+    return OKXConnectSdk.sdk;
   }
 
   // connect
@@ -85,9 +99,11 @@ class OKXConnectSdk extends EventEmitter3 {
       .info(
         `OKX Universal Provider connected: `,
         this.sdk.okxUniversalProvider?.connected()
-      );
+    );
     if (!this.sdk.okxUniversalProvider?.connected()) {
       await this.sdk.connectOkxWallet();
+    } else {
+      // todo: 断开连接
     }
   }
 
@@ -141,15 +157,15 @@ class OKXConnectSdk extends EventEmitter3 {
     this.logger.info(`Initializing OKX UI: `, OKXUniversalConnectUI);
     this.okxUniversalProvider = await OKXUniversalConnectUI.init({
       dappMetaData: {
-        icon: "https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png",
-        name: "OKX WalletConnect UI Demo",
+        icon: 'https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png',
+        name: 'OKX WalletConnect UI Demo',
       },
       actionsConfiguration: {
-        returnStrategy: "tg://resolve",
-        modals: "all",
-        tmaReturnUrl: "back",
+        returnStrategy: 'tg://resolve',
+        modals: 'all',
+        tmaReturnUrl: 'back',
       },
-      language: "en_US",
+      language: 'en_US',
       uiPreferences: {
         theme: THEME.LIGHT,
       },
@@ -180,7 +196,7 @@ class OKXConnectSdk extends EventEmitter3 {
     // hack code
     // find element and trigger
     const triggerInterval = setInterval(() => {
-      const modalRoot = document.getElementById("universal-widget-root");
+      const modalRoot = document.getElementById('universal-widget-root');
       if (modalRoot) {
         const jumperBtn = document.querySelectorAll(
           '#universal-widget-root [data-tc-wallets-modal-connection-mobile="true"] button'
@@ -196,16 +212,16 @@ class OKXConnectSdk extends EventEmitter3 {
     const session = await this.okxUniversalProvider.openModal({
       namespaces: {
         eip155: {
-          chains: ["eip155:1"],
+          chains: ['eip155:1'],
           rpcMap: {
-            1: "https://rpc.flashbots.net", // set your own rpc url
+            1: 'https://rpc.flashbots.net', // set your own rpc url
           },
-          defaultChain: "1",
+          defaultChain: '1',
         },
       },
       optionalNamespaces: {
         eip155: {
-          chains: ["eip155:43114"],
+          chains: ['eip155:43114'],
         },
       },
     });
@@ -213,8 +229,8 @@ class OKXConnectSdk extends EventEmitter3 {
     this.logger.info(`OKX Wallet session: `, session);
 
     const accounts = this.okxUniversalProvider.request(
-      { method: "eth_requestAccounts" },
-      "eip155:1"
+      { method: 'eth_requestAccounts' },
+      'eip155:1'
     );
     this.logger.info(`OKX Universal Provider eth_requestAccounts : `, accounts);
   }
@@ -225,7 +241,7 @@ class OKXConnectSdk extends EventEmitter3 {
       return;
     }
 
-    this.okxUniversalProvider.on("display_uri", (uri: string) => {
+    this.okxUniversalProvider.on('display_uri', (uri: string) => {
       this.logger.info(`on - Display URI: `, uri);
       // const modalRoot = document.getElementById("universal-widget-root");
       // if (modalRoot) {
@@ -235,7 +251,7 @@ class OKXConnectSdk extends EventEmitter3 {
     });
 
     // Session information changes (e.g. adding a custom chain) will trigger this event;
-    this.okxUniversalProvider.on("session_update", (session: any) => {
+    this.okxUniversalProvider.on('session_update', (session: any) => {
       this.logger.info(`on - Session updated: `, session);
       Object.keys(this.proxies).forEach((key) => {
         const proxy = this.proxies[key as SupportedNetworks];
@@ -246,7 +262,7 @@ class OKXConnectSdk extends EventEmitter3 {
     }); // Session information changes (e.g., adding a custom chain).
 
     // Disconnecting triggers this event;
-    this.okxUniversalProvider.on("session_delete", ({ topic }: any) => {
+    this.okxUniversalProvider.on('session_delete', ({ topic }: any) => {
       this.logger.info(`on - Session deleted: `, topic);
       Object.keys(this.proxies).forEach((key) => {
         const proxy = this.proxies[key as SupportedNetworks];
@@ -256,7 +272,7 @@ class OKXConnectSdk extends EventEmitter3 {
       });
     });
 
-    this.okxUniversalProvider.on("default_chain_changed", (data: any) => {
+    this.okxUniversalProvider.on('default_chain_changed', (data: any) => {
       this.logger.info(`on - Default chain changed: `, data);
       Object.keys(this.proxies).forEach((key) => {
         const proxy = this.proxies[key as SupportedNetworks];
@@ -266,7 +282,7 @@ class OKXConnectSdk extends EventEmitter3 {
       });
     });
 
-    this.okxUniversalProvider.on("okx_engine_connect_params", (data: any) => {
+    this.okxUniversalProvider.on('okx_engine_connect_params', (data: any) => {
       this.logger.info(`on - OKX engine connect params: `, data);
       Object.keys(this.proxies).forEach((key) => {
         const proxy = this.proxies[key as SupportedNetworks];
@@ -276,7 +292,7 @@ class OKXConnectSdk extends EventEmitter3 {
       });
     });
 
-    this.okxUniversalProvider.on("update_name_spaces", (data: any) => {
+    this.okxUniversalProvider.on('update_name_spaces', (data: any) => {
       this.logger.info(`on - Update namespaces: `, data);
       Object.keys(this.proxies).forEach((key) => {
         const proxy = this.proxies[key as SupportedNetworks];
@@ -301,7 +317,7 @@ class OKXConnectSdk extends EventEmitter3 {
   private initializeLogger(): ReturnType<typeof logger.createScopedLogger> {
     const logger = Logger.getInstance();
     Logger.setLevel(LogLevel.DEBUG); // TODO: For development only
-    return logger.createScopedLogger("OKXConnectSdk");
+    return logger.createScopedLogger('OKXConnectSdk');
   }
 
   private async proxyEthereumProvider() {
@@ -316,13 +332,13 @@ class OKXConnectSdk extends EventEmitter3 {
     }
 
     const SUPPORTED_METHODS = [
-      "request",
-      "on",
-      "removeListener",
-      "isOKXConnectProvider",
-      "getLogger",
-      "logger",
-      "okxUniversalProvider",
+      'request',
+      'on',
+      'removeListener',
+      'isOKXConnectProvider',
+      'getLogger',
+      'logger',
+      'okxUniversalProvider',
     ];
     // https://tr.javascript.info/proxy
     const proxy = new Proxy(this.proxies[SupportedNetworks.ETHEREUM], {
@@ -350,7 +366,7 @@ class OKXConnectSdk extends EventEmitter3 {
       },
     });
     // inject etheruem provider if window.ethereum not exist
-    Object.defineProperty(window, "ethereum", {
+    Object.defineProperty(window, 'ethereum', {
       value: proxy,
       writable: false,
       configurable: false,

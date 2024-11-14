@@ -2,7 +2,7 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 import BaseAdapter from "./baseAdapter";
 import {sortAccountsByChainId} from '../utils/evm.ts'
-import { ProviderMessage } from "../types";
+import { ProviderMessage } from "../types/index.ts";
 
 class EthereumAdapter extends BaseAdapter {
   private static EVM_SUPPORTED_METHODS: string[] = [
