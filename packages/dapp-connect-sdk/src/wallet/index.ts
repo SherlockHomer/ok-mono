@@ -12,7 +12,7 @@ export function getSupportWalletList(): EIP6963ProviderWalletInfo[] {
     const installedWallets: EIP6963ProviderWalletInfo[] = [];
     // detect wallet providers;
     detectWalletProviders(installedWallets);
-    return [OKX_MINI_WALLET, ...installedWallets];
+    return [...installedWallets];
   }
   return [OKX_MINI_WALLET];
 }
