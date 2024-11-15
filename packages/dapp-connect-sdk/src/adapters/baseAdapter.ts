@@ -4,6 +4,7 @@ import { type OKXUniversalConnectUI } from '@okxconnect/ui';
 import { Logger, LogLevel, logger } from "../utils/logger";
 
 abstract class BaseAdapter extends EventEmitter {
+  // todo: check okxUniversalProvider 在这个类的作用
   protected okxUniversalProvider: any;
   protected logger: ReturnType<typeof logger.createScopedLogger>;
 
@@ -14,7 +15,7 @@ abstract class BaseAdapter extends EventEmitter {
 
     // setup OKXUniversalProvider
     this.okxUniversalProvider = okxUniversalProvider;
-    this.logger.debug("Adapter initialized");
+    this.logger.debug('Adapter initialized');
   }
 
   public abstract request(args: {
@@ -25,7 +26,7 @@ abstract class BaseAdapter extends EventEmitter {
   // protected
 
   public emit<T extends string | symbol>(event: T, ...args: any[]): boolean {
-    this.logger.debug("Emitting event", event, args);
+    this.logger.debug('Emitting event', event, args);
     return super.emit(event, ...args);
   }
 

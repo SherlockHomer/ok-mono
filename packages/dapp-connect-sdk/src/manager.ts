@@ -128,6 +128,8 @@ class OKXConnectSdk extends EventEmitter3 {
       await OKXConnectSdk.sdk.initUniversalProvider();
       await OKXConnectSdk.sdk.initProxies();
 
+      // todo: 新增一个 this.supportedWallets [window.ethereum]
+      // todo: 遍历通用的 proxyProvider(this.supportedWallets[x])
       // inject window.ethereum if not exist
       if (!window.ethereum) {
         OKXConnectSdk.sdk.proxyEthereumProvider();
@@ -317,6 +319,7 @@ class OKXConnectSdk extends EventEmitter3 {
     this.proxies[SupportedNetworks.ETHEREUM] = new EthereumAdapter(
       this.okxUniversalProvider,
       {
+        // todo: check 是否将上下文 this 注入就行了
         connectCallback: async () => {
           await this.connectOkxWallet();
         }
@@ -331,6 +334,8 @@ class OKXConnectSdk extends EventEmitter3 {
   }
 
   private async proxyEthereumProvider() {
+    // todo: check 1. 通用代理注入
+    debugger;
     if (window.ethereum) {
       this.logger.info(`Already proxied Ethereum provider`);
       return;
@@ -383,6 +388,7 @@ class OKXConnectSdk extends EventEmitter3 {
       configurable: false,
     });
 
+    // todo: check 2. 区分不同代理
     // dispatch eip-6963 event
     const announceProviderEvent = new CustomEvent('eip6963:announceProvider', {
       detail: Object.freeze({
