@@ -2,3 +2,7 @@
 	path = apps/quanquan-dapp
 	url = https://github.com/SherlockHomer/quanquan-dapp-demo
 	ignore = dirty
+[submodule "apps/quanquan-dapp-local"]
+	path = apps/quanquan-dapp-local
+	url = git@github.com:SherlockHomer/dapp-demo-local.git
+	ignore = dirty
