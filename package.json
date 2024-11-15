@@ -2,7 +2,7 @@
   "name": "ok-mono",
   "private": true,
   "scripts": {
-    "setup": "pnpm submodule",
+    "pre": "pnpm submodule && pnpm install",
     "clean:all": "pnpm clean && pnpm clean:turbo",
     "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' + & rm pnpm-lock.yaml",
     "clean:turbo": "find . -name \".turbo\" -type d -prune -exec rm -rf '{}' +",
