@@ -1,5 +1,4 @@
-import { OKXUniversalProvider } from '@okxconnect/universal-provider';
-
+import { type OKXUniversalConnectUI } from '@okxconnect/ui';
 import BaseAdapter from './baseAdapter';
 import { sortAccountsByChainId } from '../utils/evm.ts';
 import { OKX_MINI_WALLET } from '../wallet/index.ts';
@@ -18,75 +17,72 @@ class EthereumAdapter extends BaseAdapter {
     'wallet_watchAsset',
   ];
   public eip6963ProviderInfo: any;
+  private connect: Function | undefined;
 
-  constructor(okxUniversalProvider: OKXUniversalProvider) {
+  constructor(okxUniversalProvider: OKXUniversalConnectUI, options: {
+    connectCallback?: Function;
+  }) {
     super(okxUniversalProvider);
 
     // setup eip-6963 provider info
     this.eip6963ProviderInfo = OKX_MINI_WALLET;
 
-    this.getLogger().debug('okxUniversalProvider: ', this.okxUniversalProvider);
+    // connect callback from OKX Universal Provider
+    this.connect = options && options.connectCallback;
+
+    this.getLogger().debug('init okxUniversalProvider: ', this.okxUniversalProvider);
   }
 
   public async request(args: { method: string; params: any[] }) {
+    // check method is supported
+    if (!EthereumAdapter.EVM_SUPPORTED_METHODS.includes(args.method)) {
+      this.logger.info(`Method ${args.method} not supported`);
+      return Promise.reject(`Method ${args.method} not supported`);
+    }
+  
     const { method, params } = args;
-    this.getLogger().debug('EthereumAdapter request', method, params);
-    // get chain
-    const chain = 'eip155:1';
     let requestData = params ? { method, params } : { method };
-    console.log('params', params);
 
-    if (EthereumAdapter.EVM_SUPPORTED_METHODS.includes(method)) {
-      this.getLogger().debug('Requesting accounts: ', method, requestData);
-      switch (method) {
-        case EIP155_METHODS.PERSONAL_SIGN:
-          requestData = {
-            method: EIP155_METHODS.PERSONAL_SIGN,
-            params: [params[0], params[1]],
-          };
-          // TODO: Implement personal_sign method
-          break;
-        case EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4:
-          requestData = {
-            method: EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4,
-            params: [params[0], JSON.parse(params[1])],
-          };
-          break;
-      }
-      try {
-        const result = await this.okxUniversalProvider.request(
-          requestData,
-          chain,
-        );
-        this.getLogger().debug('Requesting accounts result: ', method, result);
-        return Promise.resolve(result);
-      } catch (error) {
-        this.getLogger().error(`Requesting accounts error: ${error.message}`);
-        return Promise.reject(error);
-      }
-    } else {
-      this.getLogger().info(`Method ${method} not supported`);
-      return Promise.reject(`Method ${method} not supported`);
+    switch (method) {
+      case 'eth_requestAccounts':
+        return await this.handleRequestAccounts();
+      case EIP155_METHODS.PERSONAL_SIGN:
+        requestData = {
+          method: EIP155_METHODS.PERSONAL_SIGN,
+          params: [params[0], params[1]],
+        };
+        break;
+      case EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4:
+        requestData = {
+          method: EIP155_METHODS.ETH_SIGN_TYPED_DATA_V4,
+          params: [params[0], JSON.parse(params[1])],
+        };
+        break;
+
+      default:
+        break;
+    }
+
+    try {
+      // TODO: which chain to use? should be sync with OKX Universal Provider
+      const chain = 'eip155:1';
+      const result = await this.okxUniversalProvider.request(requestData, chain);
+      this.getLogger().debug('Requesting accounts result: ', method, result);
+      return Promise.resolve(result);
+    } catch (error) {
+      this.getLogger().error(`Requesting accounts error: ${error.message}`);
+      return Promise.reject(error);
     }
   }
 
+  // let dapp check if the wallet is connected
   public isConnected() {
-    if (this.okxUniversalProvider.session) {
-      return true;
-    }
-    return false;
+    return this.okxUniversalProvider.connected();
   }
 
   public async disconnect() {
-    this.okxUniversalProvider.disconnect();
+    await this.okxUniversalProvider.disconnect();
   }
-
-  public eventCallbackHandlers: Record<string, Set<Function>> = {
-    connect: new Set(),
-    disconnect: new Set(),
-    accountsChanged: new Set(),
-    chainChanged: new Set(),
-  };
 
   on<T extends string | symbol>(
     event: T,
@@ -106,24 +102,7 @@ class EthereumAdapter extends BaseAdapter {
     return super.removeListener(event, fn, context, once);
   }
 
-  // public on(event: string, callback: Function) {
-  //   this.logger.debug("on", event, callback);
-  //   if (this.eventCallbackHandlers[event]) {
-  //     this.eventCallbackHandlers[event].add(callback);
-  //   } else {
-  //     console.log(`Event ${event} not supported`);
-  //   }
-  // }
-
-  // public removeListener(event: string, callback: Function) {
-  //   console.log("removeListener");
-  //   if (this.eventCallbackHandlers[event]) {
-  //     this.eventCallbackHandlers[event].delete(callback);
-  //   } else {
-  //     console.log(`Event ${event} not supported`);
-  //   }
-  // }
-
+  // --- TODO: refactor this --- start
   public lastSession: Record<string, any> | null = null;
 
   public sessionUpdateCallback(session: any) {
@@ -156,19 +135,37 @@ class EthereumAdapter extends BaseAdapter {
     }
     this.lastSession = session;
 
-    if (this.eventCallbackHandlers[event]) {
-      this.eventCallbackHandlers[event]?.forEach((callback) => {
-        callback(cbParams);
-      });
-    }
+    // TODO: emit event
   }
   public sessionDeleteCallback(topic: any) {
     console.log(topic);
     this.lastSession = null;
-    if (this.eventCallbackHandlers['disconnect']) {
-      this.eventCallbackHandlers['disconnect']?.forEach((callback) => {
-        callback();
+    // TODO: emit event
+    this.emit('accountChanged', []);
+  }
+  // --- TODO: refactor this --- end
+
+  // private method
+
+  // handle connect okx mini wallet
+  private async handleRequestAccounts() {
+    if (!this.connect) {
+      return Promise.reject('connectCallback not provided');
+    }
+
+    try {
+      // trigger okx universal provider connect
+      await this.connect(this.eip6963ProviderInfo);
+
+      // request accounts
+      const accounts = await this.okxUniversalProvider.request({
+        method: 'eth_accounts',
       });
+      this.getLogger().debug('Requesting accounts result: ', accounts);
+      return Promise.resolve(accounts);
+    } catch (error) {
+      this.getLogger().error(`Requesting accounts error: ${error.message}`);
+      return Promise.reject(error);
     }
   }
 }

@@ -1,13 +1,13 @@
 // basic adapter class for request, on, removeListener and RPC error handling
 import EventEmitter from "eventemitter3";
-import { type OKXUniversalProvider } from "@okxconnect/universal-provider";
+import { type OKXUniversalConnectUI } from '@okxconnect/ui';
 import { Logger, LogLevel, logger } from "../utils/logger";
 
 abstract class BaseAdapter extends EventEmitter {
   protected okxUniversalProvider: any;
   protected logger: ReturnType<typeof logger.createScopedLogger>;
 
-  constructor(okxUniversalProvider: OKXUniversalProvider) {
+  constructor(okxUniversalProvider: OKXUniversalConnectUI) {
     super();
     // Initialize scoped logger
     this.logger = this.initializeLogger();

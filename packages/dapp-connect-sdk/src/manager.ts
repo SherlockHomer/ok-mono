@@ -22,8 +22,8 @@ export interface OKXConnectSdkOptions {
 // OKX connect SDK
 class OKXConnectSdk extends EventEmitter3 {
   private static sdk: OKXConnectSdk;
-  private static options: OKXConnectSdkOptions = {};
   private static initialized = false;
+  private options: OKXConnectSdkOptions = {};
   private okxUniversalProvider: OKXUniversalConnectUI | null = null;
   private proxies: {
     [SupportedNetworks.ETHEREUM]: EthereumAdapter | null;
@@ -44,10 +44,12 @@ class OKXConnectSdk extends EventEmitter3 {
   protected logger: ReturnType<typeof logger.createScopedLogger>;
 
   // init
-  constructor() {
+  constructor(options: OKXConnectSdkOptions = {}) {
     super();
     // Initialize scoped logger
     this.logger = this.initializeLogger();
+
+    this.options = options;
   }
 
   protected getLogger() {
@@ -73,8 +75,7 @@ class OKXConnectSdk extends EventEmitter3 {
     }
     OKXConnectSdk.hackOKXConnectUI();
 
-    OKXConnectSdk.options = options;
-    OKXConnectSdk.sdk = new OKXConnectSdk();
+    OKXConnectSdk.sdk = new OKXConnectSdk(options);
     await OKXConnectSdk.sdk.initialize();
     return OKXConnectSdk.sdk;
   }
@@ -315,6 +316,11 @@ class OKXConnectSdk extends EventEmitter3 {
     // etheum provider proxy
     this.proxies[SupportedNetworks.ETHEREUM] = new EthereumAdapter(
       this.okxUniversalProvider,
+      {
+        connectCallback: async () => {
+          await this.connectOkxWallet();
+        }
+      }
     );
   }
 
