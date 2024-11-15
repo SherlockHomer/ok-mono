@@ -1,3 +1,6 @@
+## clone
+git clone --recurse-submodules git@github.com:SherlockHomer/ok-mono.git
+
 ## What's inside?
 
 This Turborepo includes the following packages/apps:
