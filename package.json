@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "setup": "pnpm submodule",
+    "clean:all": "pnpm clean && pnpm clean:turbo",
     "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' + & rm pnpm-lock.yaml",
+    "clean:turbo": "find . -name \".turbo\" -type d -prune -exec rm -rf '{}' +",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
