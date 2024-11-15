@@ -6,6 +6,8 @@ import { EIP155_METHODS } from '../constant/methods.ts';
 import { EIP6963ProviderWalletInfo } from '../types/index.ts';
 import { getHandler } from '../utils/proxy.ts';
 
+declare var Proxy: any;
+
 class EthereumAdapter extends BaseAdapter {
   private static EVM_SUPPORTED_METHODS: string[] = [
     'personal_sign',

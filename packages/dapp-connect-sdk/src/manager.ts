@@ -169,7 +169,6 @@ class OKXConnectSdk {
     }
 
     this.logger.info(`Connecting to OKX Wallet`);
-    UniversalProvider.clickTGMiniWalletButton();
 
     // disconnect before connect
     if (this.okxUniversalProvider.isConnected()) {

@@ -94,8 +94,8 @@ class UniversalProvider {
 		}
 
 		let chainId;
-		Object.keys(this.session?.namespaces).forEach((key) => {
-      this.logger.debug('namespace - akey', key, this.session?.namespaces[key]);
+    Object.keys(this.session?.namespaces).forEach((key) => {
+      this.logger.debug('namespace - key', key, this.session?.namespaces[key]);
 			if (this.session?.namespaces[key]?.chains?.length > 0) {
 				chainId = this.session?.namespaces[key]?.chains[0];
 			}
@@ -109,8 +109,8 @@ class UniversalProvider {
 		}
 
     this.logger.info('connecting: ', this.client, options);
-
-		this.session = await this.client.openModal(options);
+    UniversalProvider.clickTGMiniWalletButton();
+    this.session = await this.client.openModal(options);
 		return this.session;
 	}
 
@@ -177,13 +177,23 @@ class UniversalProvider {
     // hack code
     // find element and trigger
     const triggerInterval = setInterval(() => {
+      
       const modalRoot = document.getElementById('universal-widget-root');
       if (modalRoot) {
         const jumperBtn = document.querySelectorAll(
           '#universal-widget-root [data-tc-wallets-modal-connection-mobile="true"] button',
         )[1] as HTMLButtonElement;
+        const svg = document.querySelectorAll(
+          '#universal-widget-root [data-tc-wallets-modal-connection-mobile="true"] svg',
+        )[0] as HTMLButtonElement;
+        const h2 = document.querySelectorAll(
+          '#universal-widget-root [data-tc-wallets-modal-connection-mobile="true"] h2',
+        )[0] as HTMLButtonElement;
         if (jumperBtn) {
           jumperBtn.click();
+          clearInterval(triggerInterval);
+        }
+        if (svg && h2) { // loading element is a svg element too
           clearInterval(triggerInterval);
         }
       }
