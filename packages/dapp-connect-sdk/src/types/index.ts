@@ -1,9 +1,9 @@
 export enum SupportedWallets {
-  METAMASK = 'metamask',
+  METAMASK = 'Metamask',
   WALLET_CONNECT = 'walletconnect',
-  Phantom = 'phantom',
+  Phantom = 'Phantom',
   OKX = 'okx',
-  OKX_MINI_WALLET = 'okx_mini_wallet', // tg mini wallet
+  OKX_MINI_WALLET = 'OKX Mini Wallet', // tg mini wallet
 }
 
 export type EIP6963ProviderWalletInfo = {
@@ -19,12 +19,12 @@ export enum SupportedChains {
 }
 
 export enum SupportedNetworks {
-  ETHEREUM = 'Ethereum',
-  SOLANA = 'Solana',
-  BITCOIN = 'Bitcoin',
-  TON = 'TON',
-  APTOS = 'Aptos',
-  SUI = 'Sui',
+  ETHEREUM = 'ethereum',
+  SOLANA = 'solana',
+  BITCOIN = 'bitcoin',
+  TON = 'ton',
+  APTOS = 'aptos',
+  SUI = 'sui',
 }
 
 // supported chains map

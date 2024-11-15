@@ -1,8 +1,10 @@
-import { type OKXUniversalConnectUI } from '@okxconnect/ui';
 import BaseAdapter from './baseAdapter';
+import UniversalProvider from '../providers/okxUniversalProvider';
 import { sortAccountsByChainId } from '../utils/evm.ts';
 import { OKX_MINI_WALLET } from '../wallet/index.ts';
 import { EIP155_METHODS } from '../constant/methods.ts';
+import { EIP6963ProviderWalletInfo } from '../types/index.ts';
+import { getHandler } from '../utils/proxy.ts';
 
 class EthereumAdapter extends BaseAdapter {
   private static EVM_SUPPORTED_METHODS: string[] = [
@@ -16,21 +18,30 @@ class EthereumAdapter extends BaseAdapter {
     'wallet_addEthereumChain',
     'wallet_watchAsset',
   ];
-  public eip6963ProviderInfo: any;
-  private connect: Function | undefined;
+  static eip6963ProviderInfo: EIP6963ProviderWalletInfo;
+  private provider: UniversalProvider;
 
-  constructor(okxUniversalProvider: OKXUniversalConnectUI, options: {
-    connectCallback?: Function;
-  }) {
-    super(okxUniversalProvider);
-
+  constructor(provider: UniversalProvider) {
+    super();
     // setup eip-6963 provider info
-    this.eip6963ProviderInfo = OKX_MINI_WALLET;
+    EthereumAdapter.setupEip6963ProviderInfo(
+      OKX_MINI_WALLET,
+    );
 
-    // connect callback from OKX Universal Provider
-    this.connect = options && options.connectCallback;
+    this.provider = provider;
+  }
 
-    this.getLogger().debug('init okxUniversalProvider: ', this.okxUniversalProvider);
+  static setupEip6963ProviderInfo(info: any) {
+    this.eip6963ProviderInfo = info;
+  }
+
+  public createProxy() {
+    const proxy = new Proxy(this, getHandler());
+
+    // add eip-6963 provider support
+    this.addEip6963Support(proxy);
+
+    return proxy;
   }
 
   public async request(args: { method: string; params: any[] }) {
@@ -64,9 +75,7 @@ class EthereumAdapter extends BaseAdapter {
     }
 
     try {
-      // TODO: which chain to use? should be sync with OKX Universal Provider
-      const chain = 'eip155:1';
-      const result = await this.okxUniversalProvider.request(requestData, chain);
+      const result = await this.provider.request(requestData);
       this.getLogger().debug('Requesting accounts result: ', method, result);
       return Promise.resolve(result);
     } catch (error) {
@@ -77,11 +86,11 @@ class EthereumAdapter extends BaseAdapter {
 
   // let dapp check if the wallet is connected
   public isConnected() {
-    return this.okxUniversalProvider.connected();
+    return this.provider.isConnected();
   }
 
   public async disconnect() {
-    await this.okxUniversalProvider.disconnect();
+    await this.provider.disconnect();
   }
 
   on<T extends string | symbol>(
@@ -149,16 +158,36 @@ class EthereumAdapter extends BaseAdapter {
 
   // handle connect okx mini wallet
   private async handleRequestAccounts() {
-    if (!this.connect) {
-      return Promise.reject('connectCallback not provided');
+    if (!this.provider?.getClient()) {
+      return Promise.reject('client not setup');
     }
 
     try {
-      // trigger okx universal provider connect
-      await this.connect(this.eip6963ProviderInfo);
+      this.logger.debug(`handleRequestAccounts: `, this.provider, this.provider.isConnected());
+      if (!this.provider.isConnected()) {
+        // trigger okx universal provider connect
+        const session = await this.provider.connect({
+          namespaces: {
+            eip155: {
+              chains: ['eip155:1'],
+              rpcMap: {
+                1: 'https://rpc.flashbots.net', // set your own rpc url
+              },
+              defaultChain: '1',
+            },
+          },
+          optionalNamespaces: {
+            eip155: {
+              chains: ['eip155:43114'],
+            },
+          },
+        });
 
+        // get chainId from this.okxUniversalProvider
+        this.emit('connect', { chainId: this.provider.getDefaultChainId() });
+      }
       // request accounts
-      const accounts = await this.okxUniversalProvider.request({
+      const accounts = await this.provider.request({
         method: 'eth_accounts',
       });
       this.getLogger().debug('Requesting accounts result: ', accounts);
@@ -168,7 +197,25 @@ class EthereumAdapter extends BaseAdapter {
       return Promise.reject(error);
     }
   }
+
+  private addEip6963Support(proxy: EthereumAdapter) {
+    // dispatch eip-6963 event
+    const announceProviderEvent = new CustomEvent('eip6963:announceProvider', {
+      detail: Object.freeze({
+        info: EthereumAdapter.eip6963ProviderInfo,
+        provider: proxy,
+      }),
+    });
+
+    window.dispatchEvent(announceProviderEvent);
+
+    // listen to request provider event
+    window.addEventListener('eip6963:requestProvider', () => {
+      window.dispatchEvent(announceProviderEvent);
+    });
+  }
 }
+
 
 export default EthereumAdapter;
 

@@ -7,12 +7,15 @@ import { OKX_MINI_WALLET } from "../../wallet";
 const { button, div, p, h3 } = van.tags;
 
 export function openConnectModal() {
+  const wallets = getSupportWalletList();
   if (isTelegram()) {
     // connect with TG Mini Wallet directly
     connectCallBack(OKX_MINI_WALLET);
     return;
-  } 
-  const wallets = getSupportWalletList();
+  }
+  // TODO: if no wallet detected, allow user to connect with TG Mini Wallet
+  
+
   const closed = van.state(false);
   const formDom = div(
     h3({style:"font-size:24px;"},
